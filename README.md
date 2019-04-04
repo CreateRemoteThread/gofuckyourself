@@ -1,2 +1,3 @@
 # gofuckyourself
-some chipwhisperer scripts
+
+some chipwhisperer scripts, provided as-is.
