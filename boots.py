@@ -49,7 +49,7 @@ widths = []
 offsets = []
 
 Range = namedtuple('Range', ['min', 'max', 'step'])
-width_range = Range(30,37, 0.5)
+width_range = Range(25,35, 0.5)
 cpufreq = 16000000
 # test here...
 # offset_range = Range(1 * cpufreq,100 * cpufreq, cpufreq/2)
