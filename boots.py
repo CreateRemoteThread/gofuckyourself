@@ -72,7 +72,7 @@ baudrate = 9600
 
 save_prefix = uuid.uuid4()
 
-opts,args = getopt.getopt(sys.argv[1:],"e:o:w:r:",["ext_offset=","offset=","width=","repeat="])
+opts,args = getopt.getopt(sys.argv[1:],"e:o:w:r:s:",["ext_offset=","offset=","width=","repeat=","save_prefix="])
 for opt,arg in opts:
   if opt in ("-e","--ext_offset"):
     ext_offset_range = parseIntTuple(arg)
@@ -82,6 +82,8 @@ for opt,arg in opts:
     width_range = parseFloatTuple(arg)
   elif opt in ("-r","--repeat"):
     repeat_range = parseIntTuple(arg)
+  elif opt in ("-s","--save_prefix"):
+    save_prefix = arg
 
 def countAttempts(x):
   r =  ((x.max - x.min) / x.step) + 1
@@ -95,6 +97,7 @@ print "Delay: %s" % repr(ext_offset_range)
 print "Glitch Offset: %s" % repr(offset_range)
 print "Glitch Width: %s (%% of clk)" % repr(width_range)
 print "Glitch Repeat: %s" % repr(repeat_range)
+print "Save prefix: %s" % save_prefix
 
 totalAttempts = countAttempts(ext_offset_range) * countAttempts(offset_range) * countAttempts(width_range) * countAttempts(repeat_range)
 
@@ -139,10 +142,10 @@ target.init()
 print "Configuring test baud rate..."
 target.baud = baudrate
 
-open('glitch_out.csv', 'w').close()
+# open("%s-output.csv" % save_prefix, 'w').close()
 f = open('glitch_out.csv', 'ab')
 writer = csv.writer(f)
-writer.writerow(["Output","Width","Offset","Success"])
+writer.writerow(["Output","Hash","Ext. Offset", "Offset","Width","Repeat","Success"])
 scope.glitch.offset = -4.25
 scope.glitch.ext_offset = 0
 # scope.glitch.offset = 100 * cpufreq
@@ -220,7 +223,7 @@ while scope.glitch.ext_offset <= ext_offset_range.max:
 f.close()
 traces = np.asarray(traces)
 print "Saving power traces..."
-np.savez("glitch_traces.npz",traces)
+np.savez("%s-traces.npz" % save_prefix,traces)
 print "Done!"
 
 scope.dis()
