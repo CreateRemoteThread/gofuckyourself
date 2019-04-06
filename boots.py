@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
-# the magic talking monkey...
+from __future__ import division
 
-from __future__ import print_function, division
-
+import sys
+import getopt
 import binascii
 import hashlib
 import time
@@ -11,15 +11,99 @@ import logging
 import os
 from collections import namedtuple
 import csv
-
 import numpy as np
-
 import chipwhisperer as cw
-# from chipwhisperer.tests.tools_for_tests import FIRMWARE_DIR
-from chipwhisperer.capture.api.programmers import XMEGAProgrammer
-#from scripting_utils import GlitchResultsDisplay
+import string
+import uuid
 
 logging.basicConfig(level=logging.WARN)
+
+if __name__ != "__main__":
+  print "This is a front-end, no importing please."
+  sys.exit(0)
+
+def rockyRoad(s):
+  numRows = (len(s) / 16) + 1
+  normalOut = ""
+  shortOut = ""
+  for i in range(1,len(s) + 1):
+    thisChar = s[i - 1]
+    normalOut += "%02x " % ord(thisChar) 
+    if i % 8 == 0 and i % 16 != 0 and i != 0: 
+      normalOut += "- "
+    if thisChar.isalnum():
+      shortOut += thisChar
+    else:
+      shortOut += "."
+    if i % 16 == 0 and i != 0:
+      print normalOut + ": " + shortOut
+      normalOut = ""
+      shortOut = ""
+  if normalOut != "": # if we're not aligned to 16:
+    l = 16 - len(shortOut)
+    for i in range(len(shortOut), 16):
+      if i % 8 == 0:
+        normalOut += "- "
+      normalOut += ".. "
+      shortOut += "." 
+    print normalOut + ": " +  shortOut
+
+def parseFloatTuple(s):
+  if "," in s:
+    (min,max,step) = s.split(",")
+    return Range(float(min),float(max),float(step))
+  else:
+    return Range(float(s),float(s) + 1.0,2.0)
+
+def parseIntTuple(s):
+  if "," in s:
+    (min,max,step) = s.split(",")
+    return Range(int(min),int(max),int(step))
+  else:
+    return Range(float(s),float(s) + 1,2)
+
+Range = namedtuple('Range', ['min', 'max', 'step'])
+
+ext_offset_range = Range(0,1,2)
+offset_range = Range(-11,11,2)
+width_range = Range(-11,11,2)
+repeat_range = Range(55,56,2)
+baudrate = 9600
+
+save_prefix = uuid.uuid4()
+
+opts,args = getopt.getopt(sys.argv[1:],"e:o:w:r:",["ext_offset=","offset=","width=","repeat="])
+for opt,arg in opts:
+  if opt in ("-e","--ext_offset"):
+    ext_offset_range = parseIntTuple(arg)
+  elif opt in ("-o","--offset"):
+    offset_range = parseFloatTuple(arg)
+  elif opt in ("-w","--width"):
+    width_range = parseFloatTuple(arg)
+  elif opt in ("-r","--repeat"):
+    repeat_range = parseIntTuple(arg)
+
+def countAttempts(x):
+  r =  ((x.max - x.min) / x.step) + 1
+  # print x
+  # print int(r)
+  return int(r)
+
+print "-- CONFIGURATION --"
+
+print "Delay: %s" % repr(ext_offset_range)
+print "Glitch Offset: %s" % repr(offset_range)
+print "Glitch Width: %s (%% of clk)" % repr(width_range)
+print "Glitch Repeat: %s" % repr(repeat_range)
+
+totalAttempts = countAttempts(ext_offset_range) * countAttempts(offset_range) * countAttempts(width_range) * countAttempts(repeat_range)
+
+print "(Est) Total attempts: %d" % totalAttempts
+
+# sys.exit(0)
+
+print "-- CONNECT TO HW --"
+
 scope = cw.scope()
 target = cw.target(scope)
 
@@ -48,20 +132,12 @@ outputs = []
 widths = []
 offsets = []
 
-Range = namedtuple('Range', ['min', 'max', 'step'])
-width_range = Range(25,35, 0.5)
 cpufreq = 16000000
-# test here...
-# offset_range = Range(1 * cpufreq,100 * cpufreq, cpufreq/2)
-offset_range = Range(-11,11,2)
-# offset_range = Range(-7,-2,1)
-# offset_range = Range(65,175,3)
-# offset_range = Range(10,500,3)
 
-print("Initializating target buffer")
+print "Initializating target manager..."
 target.init()
-print("Baudrate")
-target.baud = 9600
+print "Configuring test baud rate..."
+target.baud = baudrate
 
 open('glitch_out.csv', 'w').close()
 f = open('glitch_out.csv', 'ab')
@@ -71,88 +147,81 @@ scope.glitch.offset = -4.25
 scope.glitch.ext_offset = 0
 # scope.glitch.offset = 100 * cpufreq
 
-scope.glitch.width = width_range.min
-while scope.glitch.width < width_range.max:
-  scope.glitch.offset = offset_range.min
-  while scope.glitch.offset < offset_range.max:
-    print("Glitching at offset %f, width %f" % (scope.glitch.offset,scope.glitch.width))
-    # scope.io.pdid = 'low'
-    # target.ser.flush()
+totalCount = 1
 
-    print("Resetting target")
-    scope.io.pdic = 'low'
-    # time.sleep(0.3)
-    scope.io.pdic = 'high'
-    # target.ser.flush()
-    #time.sleep(0.25)
+scope.glitch.ext_offset = ext_offset_range.min
+while scope.glitch.ext_offset <= ext_offset_range.max:
+  scope.glitch.width = width_range.min
+  while scope.glitch.width <= width_range.max:
+    scope.glitch.offset = offset_range.min
+    while scope.glitch.offset <= offset_range.max:
+      scope.glitch.repeat = repeat_range.min
+      while scope.glitch.repeat <= repeat_range.max:
+        print "-" * 68
+        print " Test %d of %d" % (totalCount,totalAttempts)
+        print " E: %d O: %f W: %f R: %d" % (scope.glitch.ext_offset, scope.glitch.offset, scope.glitch.width,scope.glitch.repeat)
 
-    dat = "lol"
-    tries = 10
-    while tries > 0 and ":" not in dat:
-      dat = target.ser.read(32,timeout=10)
-      # print(dat)
-      tries -= 1
+        print " > Resetting target via PDIC... "
+        scope.io.pdic = 'low'
+        scope.io.pdic = 'high'
 
-    if tries == 0:
-      print("Actual flow corruption. Rebooting device")
-      continue
+        print " > Flush buffers until ':' "
 
+        dat = "lol"
+        tries = 10
+        while tries > 0 and ":" not in dat:
+          dat = target.ser.read(32,timeout=10)
+          tries -= 1
 
-    print("Fire!")
-    scope.arm()
-    # scope.io.pdid = 'high'
-    # scope.io.pdid = 'low'
-    target.ser.write("c")
+        if tries == 0:
+          print " ! Bad state detected. Rebooting device"
+          continue
 
-    timeout = 50
-    while target.isDone() is False and timeout:
-      timeout -= 1
-      time.sleep(0.01)
+        totalCount += 1
 
-    scope.capture()
-    t = scope.getLastTrace() 
-    traces.append(t)
- 
-    output = target.ser.read(25, timeout=50)
-    print(output)
-    print(len(output))
-    # traces.append(trace)
-    outputs.append(output)
-    widths.append(scope.glitch.width)
-    offsets.append(scope.glitch.width)
+        print " > Arming FPGA!"
+        scope.arm()
 
-    hash = binascii.hexlify(hashlib.md5(output).digest())
-    print(hash)
+        target.ser.write("c")
 
-    # for table display purposes
-    # success = 'inn' in repr(output) # check for glitch success (depends on targets active firmware)
-    success = False
-    if "b98e6c2e1eddeb52f59ff62722bfd325" not in hash:
-      # if "6f048b0393437cf46419d600a244b462" not in hash:
-      # if "318171080c347061b82ca479b0f52843" not in hash:
-      # if "fail" not in repr(output):
-      print("*** WITH VICTORY OVER OURSELVES, WE ARE EXALTED ***")
-      success = True
-      # target.dis()
-      # scope.dis()
-      # sys.exit(0)
-    # success = '2' in repr(output)
-    # success = True
-    data = [repr(output), hash,scope.glitch.width, scope.glitch.offset, success]
-    #glitch_display.add_data(data)
-    writer.writerow(data)
+        timeout = 50
+        while target.isDone() is False and timeout:
+          timeout -= 1
+          time.sleep(0.01)
 
-    # run aux stuff that should happen after trace here
-    scope.glitch.offset += offset_range.step
-  scope.glitch.width += width_range.step
+        scope.capture()
+        t = scope.getLastTrace() 
+        traces.append(t)
+     
+        output = target.ser.read(25, timeout=50)
+
+        print ""
+        rockyRoad(output)
+        print ""
+
+        outputs.append(output)
+        widths.append(scope.glitch.width)
+        offsets.append(scope.glitch.width)
+
+        hash = binascii.hexlify(hashlib.md5(output).digest())
+        print " > len: %d, md5: %s" % (len(output),hash)
+
+        success = False
+        if "b98e6c2e1eddeb52f59ff62722bfd325" not in hash:
+          print " !! SUCCESS !!"
+          success = True
+        data = [repr(output), hash, scope.glitch.ext_offset, scope.glitch.offset, scope.glitch.width, scope.glitch.repeat, success]
+        writer.writerow(data)
+        print "-" * 68
+        scope.glitch.repeat += repeat_range.step
+      scope.glitch.offset += offset_range.step
+    scope.glitch.width += width_range.step
+  scope.glitch.ext_offset += ext_offset_range.step
 f.close()
 traces = np.asarray(traces)
-print("Saving power traces...")
+print "Saving power traces..."
 np.savez("glitch_traces.npz",traces)
-# the rest of the data is available with the outputs, widths, and offsets lists
-#glitch_display.display_table()
-print('Done')
+print "Done!"
 
-# clean up the connection to the scope and target
 scope.dis()
 target.dis()
