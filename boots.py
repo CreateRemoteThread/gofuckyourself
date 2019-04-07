@@ -143,7 +143,7 @@ print "Configuring test baud rate..."
 target.baud = baudrate
 
 # open("%s-output.csv" % save_prefix, 'w').close()
-f = open('glitch_out.csv', 'ab')
+f = open("%s-output.csv" % save_prefix, 'ab')
 writer = csv.writer(f)
 writer.writerow(["Output","Hash","Ext. Offset", "Offset","Width","Repeat","Success"])
 scope.glitch.offset = -4.25
