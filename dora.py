@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+# dora.py: sample glitch templtae (xmega target)
+
 from __future__ import print_function, division
 
 import time

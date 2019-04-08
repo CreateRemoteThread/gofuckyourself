@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+# boots.py: glitch parameter brute forcing
+
 from __future__ import division
 
 import sys
@@ -72,7 +74,21 @@ baudrate = 9600
 
 save_prefix = uuid.uuid4()
 
-opts,args = getopt.getopt(sys.argv[1:],"e:o:w:r:s:",["ext_offset=","offset=","width=","repeat=","save_prefix="])
+def usage():
+  print "usage: ./boots.py [experiment-params]"
+  print " -h, --help: display this message"
+  print " -e, --ext_offset [num_or_range]: delay from trigger signal (default tio4)"
+  print " -o, --offset 11 / 11,15,1: phase offset compared to clk"
+  print " -w, --width 11 / 11,15,1: width of glitch compared to clk"
+  print " -r, --repeat 11 / 11,15,1: repeats of glitch"
+  print " -s, --save_prefix lol2: where to save (lol2-output.csv, lol2-traces.npz)"
+  sys.exit(0)
+
+if len(sys.argv) == 1:
+  print "Please specify experiment parameters."
+  usage()
+
+opts,args = getopt.getopt(sys.argv[1:],"e:o:w:r:s:h",["ext_offset=","offset=","width=","repeat=","save_prefix=","help"])
 for opt,arg in opts:
   if opt in ("-e","--ext_offset"):
     ext_offset_range = parseIntTuple(arg)
@@ -84,6 +100,8 @@ for opt,arg in opts:
     repeat_range = parseIntTuple(arg)
   elif opt in ("-s","--save_prefix"):
     save_prefix = arg
+  elif opt in ("-h","--help"):
+    usage()
 
 def countAttempts(x):
   r =  ((x.max - x.min) / x.step) + 1
