@@ -1,6 +1,6 @@
 # :w:q
 
-![Just for fun](fun/a.png)
+![Just for fun](fun/b.png)
 
 This repository contains some work on glitching, and is intended for use as a template to expose chipwhisperer core functions outside of the gui, so you can stick other scripting scaffolds around them.
 
