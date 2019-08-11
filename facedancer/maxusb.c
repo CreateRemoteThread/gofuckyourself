@@ -24,6 +24,10 @@
 #define SETTRIG P5OUT|=BIT5
 #define CLRTRIG P5OUT&=~BIT5
 
+#define SET2N7000 P5OUT|=BIT4
+#define CLR2N7000 P5OUT&=~BIT4
+
+
 // define for the app list.
 app_t const maxusb_app = {
 	/* app number */
@@ -52,7 +56,9 @@ void maxusb_setup(){
 
   // gpio trigger. 
   P5DIR|=BIT5;
+  P5DIR|=BIT4;
   CLRTRIG;
+  CLR2N7000;
   
   //Setup the configuration pins.
   //This might need some delays.
@@ -96,9 +102,26 @@ void maxusb_handle_fn( uint8_t const app,
     CLRTRIG;
     break;
 
+  /*
+   * overridden: manually control the 
+   */
   case POKE://TODO poke a register.
-    debugstr("POKE isn't implemented in MAXUSB");
-    txdata(app,verb,0);
+    if(len == 0)
+    {
+	    CLR2N7000;
+    }
+    else
+    {
+	    if(cmddata[0] == 0)
+	    {
+		    CLR2N7000;
+	    }
+	    else
+	    {
+		    SET2N7000;
+	    }
+    }
+    txdata(app,verb,1);
     break;
     
   case SETUP:

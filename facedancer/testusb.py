@@ -279,6 +279,9 @@ class GoodFETMAXUSB(GoodFET):
         data=[(reg<<3)|2,value];
         self.writecmd(self.MAXUSBAPP,0x02,len(data),data);        
         return value;
+    def msp430_reset(self,value):
+        self.writecmd(self.MAXUSBAPP,0x03,1,[value])
+        return;
     def wregAS(self,reg,value):
         """Poke 8 bits into a register, setting AS."""
         data=[(reg<<3)|3,value];
@@ -507,7 +510,12 @@ class GoodFETMAXUSBHost(GoodFETMAXUSB):
             self.detect_device();
             time.sleep(0.3);
             self.enumerate_device();
+            print "Resetting.."
+            self.msp430_reset(1);
+            print "Entering wait for disconnect.."
             self.wait_for_disconnect();
+            time.sleep(0.5)
+            self.msp430_reset(0);
 
     def detect_device(self):
         """Waits for a device to be inserted and then returns."""
