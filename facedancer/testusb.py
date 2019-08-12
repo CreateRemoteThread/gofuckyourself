@@ -363,32 +363,34 @@ class GoodFETMAXUSB(GoodFET):
             print "Failed to get ACK on SETUP request in ctl_read()."
             return resultcode;
         
-        self.wreg_trigger(rHCTL,bmRCVTOG1);              #FIRST data packet in CTL transfer uses DATA1 toggle.
-        print "IN_Transfer fetching %d bytes" % bytes_to_read
-        resultcode=self.IN_Transfer(0,bytes_to_read);
+        self.xfrdata = []
+        self.wreg(rHCTL,bmRCVTOG1);              #FIRST data packet in CTL transfer uses DATA1 toggle.
+        # print "IN_Transfer fetching %d bytes" % bytes_to_read
+        print "IN_Transfer patched for 255 bytes"
+        resultcode=self.IN_Transfer(0,255, trigger=True);
+        # resultcode=self.IN_Transfer(0,bytes_to_read);
         if resultcode:
             print "Failed on IN Transfer in ctl_read()";
             return resultcode;
         
         self.IN_nak_count=self.nak_count;
-        
+       
         #The OUT status stage.
-        resultcode=self.send_packet(tokOUTHS,0);
-        if resultcode:
-            print "Failed on OUT Status stage in ctl_read()";
-            return resultcode;
+        # resultcode=self.send_packet(tokOUTHS,0);
+        # if resultcode:
+        #     print "Failed on OUT Status stage in ctl_read()";
+        #     return 0;
         
         return 0; #Success
     
     xfrdata=[]; #Ugly variable used only by a few functions.  FIXME
-    def IN_Transfer(self,endpoint,INbytes):
+    def IN_Transfer(self,endpoint,INbytes, trigger=False):
         """Does an IN transfer to an endpoint, used for Host mode."""
         xfrsize=INbytes;
         xfrlen=0;
         self.xfrdata=[];
-        
         while 1:
-            resultcode=self.send_packet(tokIN,endpoint); #IN packet to EP. NAKS taken care of.
+            resultcode=self.send_packet(tokIN,endpoint,trigger); #IN packet to EP. NAKS taken care of.
             if resultcode: return resultcode;
             
             pktsize=self.rreg(rRCVBC); #Numer of RXed bytes.
@@ -413,9 +415,9 @@ class GoodFETMAXUSB(GoodFET):
                 #print "INPACKET EP%i==%s (0x%02x bytes remain)" % (endpoint,ashex,xfrsize);
                 return resultcode;
 
-    RETRY_LIMIT=3;
+    RETRY_LIMIT=2;
     NAK_LIMIT=300;
-    def send_packet(self,token,endpoint):
+    def send_packet(self,token,endpoint,trigger=False):
         """Send a packet to an endpoint as the Host, taking care of NAKs.
         Don't use this for device code."""
         self.retry_count=0;
@@ -423,7 +425,10 @@ class GoodFETMAXUSB(GoodFET):
         
         #Repeat until NAK_LIMIT or RETRY_LIMIT is reached.
         while self.nak_count<self.NAK_LIMIT and self.retry_count<self.RETRY_LIMIT:
-            self.wreg(rHXFR,(token|endpoint)); #launch the transfer
+            if trigger:
+                self.wreg_trigger(rHXFR,(token|endpoint)); #launch the transfer
+            else:
+                self.wreg(rHXFR,(token|endpoint)); #launch the transfer
             while not (self.rreg(rHIRQ) & bmHXFRDNIRQ):
                 # wait for the completion IRQ
                 pass;
@@ -438,7 +443,7 @@ class GoodFETMAXUSB(GoodFET):
                 return resultcode;
         return resultcode;
             
-    def writebytes(self,reg,tosend):
+    def writebytes(self,reg,tosend, trigger=False):
         """Poke some bytes into a register."""
         data="";
         if type(tosend)==str:
@@ -450,7 +455,11 @@ class GoodFETMAXUSB(GoodFET):
             for foo in tosend:
                 ashex=ashex+(" %02x"%foo);
             if self.usbverbose: print "PUT %02x:=%s (0x%02x bytes)" % (reg,ashex,len(data))
-        self.writecmd(self.MAXUSBAPP,0x00,len(data),data);
+        if trigger:
+          print "ARMING"
+          self.writecmd(self.MAXUSBAPP,0x02,len(data),data);
+        else:
+          self.writecmd(self.MAXUSBAPP,0x00,len(data),data);
     def usb_connect(self):
         """Connect the USB port."""
         
@@ -559,6 +568,7 @@ class GoodFETMAXUSBHost(GoodFETMAXUSB):
         Set_Address_to_7 = [0x00,0x05,0x07,0x00,0x00,0x00,0x00,0x00];
         Get_Descriptor_Device = [0x80,0x06,0x00,0x01,0x00,0x00,0x00,0x00]; #len filled in
         Get_Descriptor_Config = [0x80,0x06,0x00,0x02,0x00,0x00,0x00,0x00];
+        # Get_str = [0x80,0x06,3,0x03,0x00,0x00,0x40,0x00]
         
         print "Issuing USB bus reset.";
         self.wreg(rHCTL,bmBUSRST);
@@ -570,19 +580,43 @@ class GoodFETMAXUSBHost(GoodFETMAXUSB):
         
         print "Set address to 0"
         self.wreg(rPERADDR,0);       # now all transfers go to addr 7
-        print "Set address to 7"
-        HR = self.ctl_write_nd(Set_Address_to_7);   # CTL-Write, no data stage
+        # print "Set address to 7"
+        # HR = self.ctl_write_nd(Set_Address_to_7);   # CTL-Write, no data stage
         
         time.sleep(0.002);           # Device gets 2 msec recovery time
-        self.wreg(rPERADDR,7);       # now all transfers go to addr 7
+        # self.wreg(rPERADDR,7);       # now all transfers go to addr 7
         
         #Get the device descriptor at the assigned address.
-        Get_Descriptor_Device[6]=0x30; #Fill in real descriptor length.
+        Get_Descriptor_Device[6]=0xFF; #Fill in real descriptor length.
         print "Fetching Device Descriptor."
         self.maxPacketSize = 256
-        self.ctl_read(Get_Descriptor_Device); #Result in self.xfrdata;
-        
+        if self.ctl_read(Get_Descriptor_Device) != 0:
+          # if self.ctl_read(Get_str) != 0:
+          print "NOPE"
+          return []
         print self.xfrdata 
+        if self.xfrdata != [18, 1, 0, 2, 0, 0, 0, 64, 76, 83, 1, 0, 0, 1, 1, 2, 3, 1]:
+          resultcode = 0
+          while resultcode == 0:
+            print "Streaming!"
+            resultcode=self.IN_Transfer(0,255);
+            if resultcode:
+              print "Failed on IN Transfer in ctl_read()"
+              sys.exit(0)
+            print self.xfrdata
+          sys.exit(0)
+        else:
+          print "Closing with OUT Status"
+          resultcode=self.send_packet(tokOUTHS,0);
+          if resultcode:
+            print "Failed on OUT Status stage in ctl_read()";
+            return [];
+          return self.xfrdata
+
+
+ 
+        return self.xfrdata
+        
  
     def printstrings(self):
         print "Vendor  ID is %04x." % self.VID;
