@@ -8,6 +8,7 @@
 import sys, time, string, cStringIO, struct, glob, os;
 import binascii
 import warnings
+import uuid
 
 from GoodFET import GoodFET;
 
@@ -358,17 +359,18 @@ class GoodFETMAXUSB(GoodFET):
         
         ##SETUP packet
         self.writebytes(rSUDFIFO,request);     #Load the FIFO
-        resultcode=self.send_packet(tokSETUP,0); #SETUP packet to EP0
+        resultcode=self.send_packet(tokSETUP,0,trigger=True); #SETUP packet to EP0
         if resultcode:
             print "Failed to get ACK on SETUP request in ctl_read()."
             return resultcode;
         
         self.xfrdata = []
         self.wreg(rHCTL,bmRCVTOG1);              #FIRST data packet in CTL transfer uses DATA1 toggle.
+        # self.sanity = [18, 1, 0, 2, 0, 0, 0, 64, 76, 83, 1, 0, 0, 1, 1, 2, 3, 1]
+        self.sanity = [14, 3, 84, 0, 82, 0, 69, 0, 90, 0, 79, 0, 82, 0]
         # print "IN_Transfer fetching %d bytes" % bytes_to_read
         print "IN_Transfer patched for 255 bytes"
-        resultcode=self.IN_Transfer(0,255, trigger=True);
-        # resultcode=self.IN_Transfer(0,bytes_to_read);
+        resultcode=self.IN_Transfer(0,255, trigger=False);
         if resultcode:
             print "Failed on IN Transfer in ctl_read()";
             return resultcode;
@@ -384,6 +386,7 @@ class GoodFETMAXUSB(GoodFET):
         return 0; #Success
     
     xfrdata=[]; #Ugly variable used only by a few functions.  FIXME
+
     def IN_Transfer(self,endpoint,INbytes, trigger=False):
         """Does an IN transfer to an endpoint, used for Host mode."""
         xfrsize=INbytes;
@@ -394,11 +397,16 @@ class GoodFETMAXUSB(GoodFET):
             if resultcode: return resultcode;
             
             pktsize=self.rreg(rRCVBC); #Numer of RXed bytes.
+            print "Received: %d from MAX3421" % pktsize
             
             #Very innefficient, move this to C if performance is needed.
             for j in range(0,pktsize):
                 self.xfrdata=self.xfrdata+[self.rreg(rRCVFIFO)];
-            xfrsize=self.xfrdata[0];
+            if self.xfrdata == []:
+              print "IN_Transfer returned empty!"
+              xfrsize = 0
+            else:
+              xfrsize=self.xfrdata[0];
             self.wreg(rHIRQ,bmRCVDAVIRQ); #Clear IRQ
             xfrlen=xfrlen+pktsize; #Add byte count to total transfer length.
             
@@ -407,7 +415,8 @@ class GoodFETMAXUSB(GoodFET):
             #Packet is complete if:
             # 1. The device sent a short packet, <maxPacketSize
             # 2. INbytes have been transfered.
-            if (pktsize<self.maxPacketSize) or (xfrlen>=xfrsize):
+            if (pktsize<self.maxPacketSize) or xfrsize == 0:
+            # if (pktsize<self.maxPacketSize) or (xfrlen>=xfrsize) or xfrsize == 0:
                 self.last_transfer_size=xfrlen;
                 ashex="";
                 for foo in self.xfrdata:
@@ -568,8 +577,8 @@ class GoodFETMAXUSBHost(GoodFETMAXUSB):
         Set_Address_to_7 = [0x00,0x05,0x07,0x00,0x00,0x00,0x00,0x00];
         Get_Descriptor_Device = [0x80,0x06,0x00,0x01,0x00,0x00,0x00,0x00]; #len filled in
         Get_Descriptor_Config = [0x80,0x06,0x00,0x02,0x00,0x00,0x00,0x00];
-        # Get_str = [0x80,0x06,3,0x03,0x00,0x00,0x40,0x00]
-        
+        Get_Descriptor_String = [0x80,0x06,0x02,0x03,0x09,0x04,0xf0,0x00]
+ 
         print "Issuing USB bus reset.";
         self.wreg(rHCTL,bmBUSRST);
         while self.rreg(rHCTL) & bmBUSRST:
@@ -588,23 +597,41 @@ class GoodFETMAXUSBHost(GoodFETMAXUSB):
         
         #Get the device descriptor at the assigned address.
         Get_Descriptor_Device[6]=0xFF; #Fill in real descriptor length.
+        Get_Descriptor_Device[7]=0xFF; #Fill in real descriptor length.
+        Get_Descriptor_Config[6]=0xFF; #Fill in real descriptor length.
+        Get_Descriptor_Config[7]=0xFF; #Fill in real descriptor length.
+        Get_Descriptor_String[6]=0xFF; #Fill in real descriptor length.
+        Get_Descriptor_String[7]=0xFF; #Fill in real descriptor length.
         print "Fetching Device Descriptor."
-        self.maxPacketSize = 256
-        if self.ctl_read(Get_Descriptor_Device) != 0:
-          # if self.ctl_read(Get_str) != 0:
+        self.maxPacketSize = 0xFFFF
+        out = []
+        if self.ctl_read(Get_Descriptor_String) != 0:
+          # if self.ctl_read(Get_Descriptor_String) != 0:
           print "NOPE"
           return []
-        print self.xfrdata 
-        if self.xfrdata != [18, 1, 0, 2, 0, 0, 0, 64, 76, 83, 1, 0, 0, 1, 1, 2, 3, 1]:
+        print self.xfrdata
+        if self.xfrdata != self.sanity and len(self.xfrdata) != 0:
+          fn = "pkts-%s.log" % str(uuid.uuid4())
+          print "Starting new log %s" % fn
+          f = open(fn,"w")
+          for c in self.xfrdata:
+            f.write("%02x " % c)
           resultcode = 0
-          while resultcode == 0:
+          out += self.xfrdata
+          while resultcode == 0 and len(self.xfrdata) != 0:
             print "Streaming!"
             resultcode=self.IN_Transfer(0,255);
             if resultcode:
               print "Failed on IN Transfer in ctl_read()"
-              sys.exit(0)
+              return []
+              # sys.exit(0)
             print self.xfrdata
-          sys.exit(0)
+            for c in self.xfrdata:
+              f.write("%02x " % c)
+            out += self.xfrdata
+          f.close()
+          print "Extracting %d bytes" % len(out)
+          return out
         else:
           print "Closing with OUT Status"
           resultcode=self.send_packet(tokOUTHS,0);
@@ -612,9 +639,6 @@ class GoodFETMAXUSBHost(GoodFETMAXUSB):
             print "Failed on OUT Status stage in ctl_read()";
             return [];
           return self.xfrdata
-
-
- 
         return self.xfrdata
         
  
