@@ -8,5 +8,6 @@ The code is provided as-is.
 
 CODE MIGRATION TO PY3 IN PROGRESS.
 
-facedancer/* contains code for facedancer-based descriptor glitching, initially used against the Trezor One.
+facedancer/* contains code for facedancer-based descriptor length glitching
+chipshouter/* is py3 ported chipshouter
 cwtest/* contains code for chipwhisperer targets
