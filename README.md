@@ -2,8 +2,11 @@
 
 ![Just for fun](fun/b.png)
 
-This repository contains some work on glitching, and is intended for use as a template to expose chipwhisperer core functions outside of the gui, so you can stick other scripting scaffolds around them.
+This repository contains my work on fault injection, for a variety of production and test targets.
 
-This code was written only as a convenience - it is not intended as a replacement to the cw gui, and makes no attempt to expose all functionality.
+The code is provided as-is.
 
-WIP support for facedancer-based descriptor glitching.
+CODE MIGRATION TO PY3 IN PROGRESS.
+
+facedancer/* contains code for facedancer-based descriptor glitching, initially used against the Trezor One.
+cwtest/* contains code for chipwhisperer targets
