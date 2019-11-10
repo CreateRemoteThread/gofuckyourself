@@ -1,6 +1,4 @@
-#!/usr/bin/python
-
-from __future__ import print_function, division
+#!/usr/bin/env python3
 
 import time
 import logging
@@ -49,7 +47,7 @@ programmer.erase()
 print("Programming...")
 
 
-programmer.program("glitchsimple.hex", memtype="flash", verify=True)
+programmer.program("glitchsimple-CW303.hex", memtype="flash", verify=True)
 programmer.close()
 
 scope.glitch.trigger_src = 'ext_single'
@@ -62,7 +60,7 @@ offsets = []
 Range = namedtuple('Range', ['min', 'max', 'step'])
 repeat_range = Range(105,125,3)
 # width_range = Range(15.85,16.3, 0.1)
-width_range = Range(16.2,18.9,0.2)
+width_range = Range(19.2,22.9,0.2)
 offset_range = Range(-30,30, 0.7)
 ext_offset_range = Range(25000,59190,100)
 scope.glitch.ext_offset = ext_offset_range.min
@@ -97,7 +95,7 @@ while scope.glitch.width < width_range.max:
       except IOError as e:
         logging.error('IOError: %s' % str(e))
 
-      trace = scope.getLastTrace()
+      trace = scope.get_last_trace()
       output = target.ser.read(64, timeout=500)
       print("R=%d:W=%f:E=%d:%s" % (scope.glitch.repeat,scope.glitch.width,scope.glitch.ext_offset,repr(output)))
       # traces.append(trace)
