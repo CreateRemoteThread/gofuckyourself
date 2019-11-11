@@ -8,6 +8,7 @@ import logging
 import os
 from collections import namedtuple
 import csv
+import random
 
 import numpy as np
 
@@ -28,7 +29,6 @@ scope.clock.adc_src = "clkgen_x4"
 scope.trigger.triggers = "tio4"
 scope.io.tio1 = "serial_rx"
 scope.io.tio2 = "serial_tx"
-# scope.io.hs2 = "glitch"
 scope.io.hs2 = "clkgen"
 scope.glitch.output = "glitch_only"
 scope.io.glitch_lp = False
@@ -62,7 +62,7 @@ offsets = []
 
 Range = namedtuple('Range', ['min', 'max', 'step'])
 repeat_range = Range(1,5,2)
-width_range = Range(20.3,20.4,0.3)
+width_range = Range(19.3,20.4,0.3)
 offset_range = Range(29.9,30.7,0.3)
 scope.glitch.ext_offset = 5
 
@@ -98,6 +98,7 @@ while scope.glitch.width < width_range.max:
 
       trace = scope.get_last_trace()
       output = target.ser.read(64, timeout=500) #onl yneed first char
+      scope.glitch.width_fine = random.randint(0,100)
       print("R=%d:W=%f:O=%f:%s" % (scope.glitch.repeat,scope.glitch.width,scope.glitch.offset,repr(output)))
       if "1234" in output:
         print("done")
