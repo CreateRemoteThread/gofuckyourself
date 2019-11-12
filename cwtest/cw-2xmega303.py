@@ -31,7 +31,7 @@ scope.io.tio2 = "serial_tx"
 scope.io.hs2 = "clkgen"
 scope.glitch.output = "glitch_only"
 scope.io.glitch_lp = False
-scope.io.glitch_hp = False
+scope.io.glitch_hp = True
 print(scope.io.glitch_lp)
 print(scope.io.glitch_hp)
 target.go_cmd = ""
@@ -45,12 +45,12 @@ programmer = XMEGAProgrammer()
 programmer.scope = scope
 programmer._logging = None
 programmer.find()
-# programmer.erase()
+programmer.erase()
 
 print("Programming...")
 
 # programmer.program("~/software/chipwhisperer/hardware/victims/firmware/glitch-simple/glitchsimple-CW304.hex", memtype="flash")
-programmer.program("glitchsimple.hex", memtype="flash",verify=True)
+programmer.program("glitchsimple.hex", memtype="flash",verify=False)
 programmer.close()
 
 scope.glitch.trigger_src = 'ext_single'
@@ -63,20 +63,16 @@ offsets = []
 Range = namedtuple('Range', ['min', 'max', 'step'])
 
 gc = support.GlitchCore()
-# gc.setRepeatRange(55,105,3)
 gc.setRepeat(1)
-gc.setWidth(21.9)
-gc.setOffsetRange(23.5,28.5,0.3)
-gc.setExtOffset(15)
+gc.setWidth(38.5)
+gc.setOffsetRange(29.0,32.0,0.5)
+gc.setExtOffsetRange(15,30,1)
 
 target.init()
 gc.lock()
 
 cs = chipshouter.ChipSHOUTER("/dev/ttyUSB0")
-cs.voltage = 350
-cs.pulse.width = 30
-cs.pulse.repeat = 5
-cs.pulse.deadtime = 15
+cs.voltage = 450
 cs.clr_armed = True
 print("Give it a sec...")
 time.sleep(3.0)
@@ -88,15 +84,16 @@ while x is not None:
   scope.glitch.width = width
   scope.glitch.offset = offset
   scope.glitch.ext_offset = ext
-  scope.glitch.repeat = repeat
+  scope.glitch.repeat = 2
+  print(repeat)
 
   output = ""
   # if target.in_waiting() != 0:
   #   target.flush()
   scope.io.pdic = "low"
-  # print("Arm")
-  scope.arm()
   scope.io.pdic = "high"
+  scope.arm()
+
   target.ser.write("A")
 
   # ok, arm
@@ -109,6 +106,10 @@ while x is not None:
 
   output = target.ser.read(64, timeout=1000) #onl yneed first char
   print(repr(output))
+  if "1234" in output:
+    cs.clr_armed = False
+    print("Done")
+    sys.exit(0)
   x = gc.generateFault()
 
 print('Done')
