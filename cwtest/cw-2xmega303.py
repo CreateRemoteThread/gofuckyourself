@@ -9,6 +9,7 @@ import os
 from collections import namedtuple
 import csv
 import random
+import support
 
 import numpy as np
 
@@ -61,58 +62,44 @@ widths = []
 offsets = []
 
 Range = namedtuple('Range', ['min', 'max', 'step'])
-repeat_range = Range(1,5,2)
-width_range = Range(19.3,20.4,0.3)
-offset_range = Range(29.9,30.7,0.3)
-scope.glitch.ext_offset = 5
 
-# scope.glitch.offset = 27.7
+gc = support.GlitchCore()
+gc.setRepeat(1)
+gc.setWidthRange(19.3,20.4,0.3)
+gc.setOffsetRange(29.9,30.7,0.3)
+gc.setExtOffset(1)
 
-scope.glitch.offset = offset_range.min
-
-# pew pew pew
-scope.glitch.width = width_range.min
 target.init()
-while scope.glitch.width < width_range.max:
-  while scope.glitch.offset < offset_range.max:
-    scope.glitch.repeat = repeat_range.min
-    while scope.glitch.repeat < repeat_range.max:
-      output = ""
-      target.ser.flush()
+gc.lock()
 
-      scope.io.pdic = 'low'
-      scope.io.pdic = 'high'
+x = gc.generateFault()
+while x is not None:
+  (width,offset,ext,repeat) = x
+  scope.glitch.width = width
+  scope.glitch.offset = offset
+  scope.glitch.ext_offset = ext
+  scope.glitch.repeat = repeat
 
-      scope.arm()
-      timeout = 100
-      while target.isDone() is False and timeout:
-        timeout -= 1
-        time.sleep(0.01)
+  output = ""
+  if target.in_waiting() != 0:
+    target.flush()
+  scope.io.pdic = "low"
+  # print("Arm")
+  scope.arm()
+  scope.io.pdic = "high"
 
-      try:
-        ret = scope.capture()
-        if ret:
-          logging.warning('Timeout happened during acquisition')
-      except IOError as e:
-        logging.error('IOError: %s' % str(e))
+  # ok, arm
+  timeout = 100
+  while target.isDone() is False and timeout != 0:
+    timeout -= 1
+    time.sleep(0.01)
 
-      trace = scope.get_last_trace()
-      output = target.ser.read(64, timeout=500) #onl yneed first char
-      scope.glitch.width_fine = random.randint(0,100)
-      print("R=%d:W=%f:O=%f:%s" % (scope.glitch.repeat,scope.glitch.width,scope.glitch.offset,repr(output)))
-      if "1234" in output:
-        print("done")
-        scope.dis()
-        target.dis()
-        import sys
-        sys.exit(0)
-      # traces.append(trace)
-      scope.glitch.repeat += repeat_range.step
-    print("Adding e...")
-    scope.glitch.offset += offset_range.step
-  print("Adding w...")
-  scope.glitch.width += width_range.step
-  scope.glitch.offset = offset_range.min
+  # print("Reading")
+
+  output = target.ser.read(64, timeout=1000) #onl yneed first char
+  print(repr(output))
+  x = gc.generateFault()
+
 print('Done')
 
 scope.dis()
