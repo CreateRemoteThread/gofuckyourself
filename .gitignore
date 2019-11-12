@@ -1,1 +1,8 @@
 cwtest/glitchsimple.hex
+cwtest/chipshouter
+
+__pycache__/
+*.py[cod]
+*$py,class
+*.pyc
+*.swp

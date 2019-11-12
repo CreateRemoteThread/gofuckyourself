@@ -48,7 +48,7 @@ class GlitchCore:
         while self.currentExtOffset < self.extOffsetRange.max:
           while self.currentRepeat < self.repeatRange.max:
             self.currentRepeat += self.repeatRange.step
-            print("W:%f,O:%f,R:%d,E:%d" % (self.currentWidth,self.currentOffset,self.currentExtOffset,self.currentRepeat))
+            print("W:%f,O:%f,R:%d,E:%d" % (self.currentWidth,self.currentOffset,self.currentRepeat,self.currentExtOffset))
             return (self.currentWidth,self.currentOffset,self.currentExtOffset,self.currentRepeat)
           self.currentExtOffset += self.extOffsetRange.step
           self.currentRepeat = self.repeatRange.min

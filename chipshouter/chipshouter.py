@@ -275,8 +275,8 @@ class ChipSHOUTER(DisableNewAttr):
     """
     _name = "ChipSHOUTER"
 
-    def __init__(self, comport):
-        self.com_api = Bin_API('COM10')
+    def __init__(self, comport="/dev/ttyUSB0"):
+        self.com_api = Bin_API(comport)
         self.com_api.refresh()
         self.__connected = True
 

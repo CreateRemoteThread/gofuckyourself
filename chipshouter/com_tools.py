@@ -142,7 +142,7 @@ class Option_group(object):
 
         """
         bit_array = bytearray()
-        bits_array_length = (limit) / 8
+        bits_array_length = (limit) // 8
 
         for x in range(bits_array_length):
             bit_array.append(0)
@@ -151,7 +151,7 @@ class Option_group(object):
         for x in range(limit): 
             # set the bits
             if bools[x]['value'] == True:
-                index = x/8
+                index = x // 8
                 bit   = x % 8 
                 bit_array[index] |= 1 << bit 
 
@@ -502,14 +502,14 @@ class BP_TOOL(Connection):
     def set_options_requested(self, options):
         max_value = max(options)
         bit_array = bytearray()
-        bits_array_length = max_value / 8 + 1
+        bits_array_length = max_value // 8 + 1
 
         for x in range(bits_array_length):
             bit_array.append(0)
 
         for x in options:
             # set the bits
-            index = x/8
+            index = x // 8
             bit   = x % 8 
             bit_array[index] |= 1 << bit 
 
@@ -621,9 +621,9 @@ class BP_TOOL(Connection):
 
     def build_request_all(self):
         packet = bytearray()
-        packet.append(int(t_16_Bit_Options.MAX / 8 + 1))
-        packet.append(int(t_8_Bit_Options.MAX / 8 + 1))
-        packet.append(int(t_var_size_Options.MAX / 8 + 1))
+        packet.append(int(t_16_Bit_Options.MAX // 8 + 1))
+        packet.append(int(t_8_Bit_Options.MAX // 8 + 1))
+        packet.append(int(t_var_size_Options.MAX // 8 + 1))
 
         # ---------------------------------------------------------------------
         # Request all the 16 bit options.
@@ -744,7 +744,7 @@ class BP_TOOL(Connection):
         if len(options):
             print('UINT16 bits...... : ' + hexlify(bits))
             print('UINT16 data...... : ' + hexlify(values))
-            print('UINT16 Num of opts ... : ' + str(len(values) / 2))
+            print('UINT16 Num of opts ... : ' + str(len(values) // 2))
             print('UINT16 options... : ' + str(options))
             print('-'*80)
             for x in range(len(options)):
@@ -973,7 +973,7 @@ class Protocol(BP_TOOL):
 
     def send_command(self, command):
         request = self.build_command_packet(command)
-        print('Writing. ' + hexlify(request))
+        print('Writing. ' + hexlify(request).decode("utf-8"))
         self.s_write(request)
         print('Done.')
         time.sleep(.1)
@@ -1287,7 +1287,7 @@ class Bin_API(Protocol):
     def set_pat_wave(self, value, timeout = 0):
         wave = value
         bit_array = bytearray()
-        bits_array_length = (len(wave)) / 8 + 1
+        bits_array_length = (len(wave)) // 8 + 1 
 
         for x in range(bits_array_length):
             bit_array.append(0)
@@ -1295,7 +1295,7 @@ class Bin_API(Protocol):
         index = 0
         for x in wave: 
             if x == '1':
-                bit_array[index / 8] |= (0x80 >> (index % 8))
+                bit_array[index // 8] |= (0x80 >> (index % 8))
                 pass
             elif x == '0':
                 pass
@@ -1307,7 +1307,7 @@ class Bin_API(Protocol):
             send = bit_array[x:x+2]
             send_length = 16
 
-            if (((x / 2) + 1) * 16) > len(wave):
+            if (((x // 2) + 1) * 16) > len(wave):
                 send_length = len(wave) % 16 
 
             packet = bytearray()

@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-# this causes flash corruption [?] in the cw303 xmega target
-# power cycling does nothing, reprogram your target to keep playing.
-
 import time
 import logging
 import os
@@ -10,11 +7,12 @@ from collections import namedtuple
 import csv
 import random
 import support
+import chipshouter
 
 import numpy as np
 
 import chipwhisperer as cw
-from chipwhisperer.capture.api.programmers import XMEGAProgrammer
+from chipwhisperer.capture.api.programmers import XMEGAProgrammer,AVRProgrammer
 logging.basicConfig(level=logging.WARN)
 scope= cw.scope()
 target = cw.target(scope)
@@ -33,7 +31,7 @@ scope.io.tio2 = "serial_tx"
 scope.io.hs2 = "clkgen"
 scope.glitch.output = "glitch_only"
 scope.io.glitch_lp = False
-scope.io.glitch_hp = True
+scope.io.glitch_hp = False
 print(scope.io.glitch_lp)
 print(scope.io.glitch_hp)
 target.go_cmd = ""
@@ -42,16 +40,17 @@ target.key_cmd = ""
 print("Erase target...")
 
 # program the XMEGA with the built hex file
+# programmer = AVRProgrammer()
 programmer = XMEGAProgrammer()
 programmer.scope = scope
 programmer._logging = None
 programmer.find()
-programmer.erase()
+# programmer.erase()
 
 print("Programming...")
 
-
-programmer.program("glitchsimple.hex", memtype="flash", verify=True)
+# programmer.program("~/software/chipwhisperer/hardware/victims/firmware/glitch-simple/glitchsimple-CW304.hex", memtype="flash")
+programmer.program("glitchsimple.hex", memtype="flash",verify=True)
 programmer.close()
 
 scope.glitch.trigger_src = 'ext_single'
@@ -64,13 +63,24 @@ offsets = []
 Range = namedtuple('Range', ['min', 'max', 'step'])
 
 gc = support.GlitchCore()
+# gc.setRepeatRange(55,105,3)
 gc.setRepeat(1)
-gc.setWidthRange(19.3,20.4,0.3)
-gc.setOffsetRange(29.9,30.7,0.3)
-gc.setExtOffset(1)
+gc.setWidth(21.9)
+gc.setOffsetRange(23.5,28.5,0.3)
+gc.setExtOffset(15)
 
 target.init()
 gc.lock()
+
+cs = chipshouter.ChipSHOUTER("/dev/ttyUSB0")
+cs.voltage = 350
+cs.pulse.width = 30
+cs.pulse.repeat = 5
+cs.pulse.deadtime = 15
+cs.clr_armed = True
+print("Give it a sec...")
+time.sleep(3.0)
+print("OK go...")
 
 x = gc.generateFault()
 while x is not None:
@@ -81,12 +91,13 @@ while x is not None:
   scope.glitch.repeat = repeat
 
   output = ""
-  if target.in_waiting() != 0:
-    target.flush()
+  # if target.in_waiting() != 0:
+  #   target.flush()
   scope.io.pdic = "low"
   # print("Arm")
   scope.arm()
   scope.io.pdic = "high"
+  target.ser.write("A")
 
   # ok, arm
   timeout = 100
@@ -101,6 +112,8 @@ while x is not None:
   x = gc.generateFault()
 
 print('Done')
+
+cs.clr_armed = False
 
 scope.dis()
 target.dis()
