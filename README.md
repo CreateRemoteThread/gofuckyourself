@@ -1,6 +1,6 @@
 # :w:q
 
-![Just for fun](fun/rpi-pewpewpew.png)
+![Just for fun](fun/rpi-pewpewpew.PNG)
 
 CODE MIGRATION TO PY3 IN PROGRESS.
 
