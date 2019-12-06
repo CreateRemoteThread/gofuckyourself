@@ -5,8 +5,10 @@ import logging
 import os
 from collections import namedtuple
 import csv
+import serial
 
 import numpy as np
+import sys
 
 import chipwhisperer as cw
 logging.basicConfig(level=logging.WARN)
@@ -43,40 +45,58 @@ target.init()
 
 scope.io.pdic = "low"
 
-print "RasPi Login..."
+ser = serial.Serial("/dev/ttyUSB0",baudrate=115200)
 
-for i in range(0,2):
-  print("Entering username 'pi'")
-  target.ser.write("pi\n")
-  time.sleep(2.0)
-  print(target.ser.read(50,timeout=5000))
-  print("Entering password 'raspberry'")
-  target.ser.write("raspberry\n")
-  time.sleep(3.0)
-  print(target.ser.read(100,timeout=3000))
+def resetDevice():
+  scope.io.pdic = "high"
+  time.sleep(0.3)
+  scope.io.pdic = "low"
 
-x = input("Press any key to reset pi")
-scope.io.pdic = "high"
-time.sleep(0.3)
-scope.io.pdic = "low"
-scope.dis()
-target.dis()
-import sys
-sys.exit(0)
+def doLogin():
+  print("Waiting for login...")
+  ser.read_until(b"raspberrypi login")
+  ser.write(b"pi\n")
+  print("Waiting for password...")
+  ser.read_until(b"Password:")
+  ser.write(b"raspberry\r\n")
+  print("Waiting for shell...")
+  ser.read_until(b"pi@raspberrypi")
+
+ser.flush()
+resetDevice()
+doLogin()
 
 while True:
-  print("Arming scope...")
   scope.arm()
-  timeout = 100000
+  ser.write(b"./tryme")
+  timeout = 10000
   while target.isDone() is False and timeout:
     timeout -= 1
     time.sleep(0.01)
   try:
     ret = scope.capture()
     if ret:
-      print("Error: timeout during acquisition")
+      print("Error: timeout during acquisition") 
   except IOError as e:
     print(e)
+  ser.timeout = 10
+  d = ser.read(1024)
+  ser.timeout = None
+  if b"dinner" in d:
+    print("Op success.")
+    scope.dis()
+    target.dis()
+    sys.exit(0)
+  elif b"pi@raspberrypi" in d:
+    print("Device seems ok")
+    pass
+  else:
+    print("Resetting device")
+    ser.flush()
+    resetDevice()
+    doLogin()
 
 scope.dis()
 target.dis()
+sys.exit(0)
+
