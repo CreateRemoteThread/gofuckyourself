@@ -96,7 +96,7 @@ while scope.glitch.ext_offset < 850:
   print("Glitching @ %d" % scope.glitch.ext_offset)
   ser.flush()
   scope.arm()
-  ser.write(b"./tryme\n")
+  ser.write(b"./bonk\n")
   timeout = 100000
   while target.isDone() is False and timeout > 0:
     timeout -= 1
@@ -109,7 +109,7 @@ while scope.glitch.ext_offset < 850:
   d = ser.read(1024)
   print(d)
   ser.timeout = None
-  if b"dinner" in d:
+  if b"6250000" not in d and b"pi@raspberry" in d:
     print("Op success.")
     scope.dis()
     target.dis()

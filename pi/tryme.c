@@ -55,12 +55,42 @@ int main(int argc, char **argv)
   INP_GPIO(4); // must use INP_GPIO before we can use OUT_GPIO
   OUT_GPIO(4);
 
-  for (rep=0; rep<5; rep++)
+  int ret = 0;
+  
+  GPIO_SET = 1 << 4;
+  asm volatile (
+  "mov r10, #0x0;" // Repeat for other
+  "mov r10, #0x0;" // unused registers
+  "mov r9, #0x0;" // Repeat for other
+  "mov r9, #0x0;" // unused registers
+  "mov r8, #0x0;" // Repeat for other
+  "mov r8, #0x0;" // unused registers
+  "mov r7, #0x0;" // Repeat for other
+  "mov r7, #0x0;" // unused registers
+  "mov r6, #0x0;" // Repeat for other
+  "mov r6, #0x0;" // unused registers
+  "mov r5, #0x0;" // Repeat for other
+  "mov r5, #0x0;" // unused registers
+  "mov r4, #0x0;" // Repeat for other
+  "mov r4, #0x0;" // unused registers
+  "mov r3, #0x0;" // Repeat for other
+  "mov r3, #0x0;" // unused registers
+  "mov r2, #0x0;" // Repeat for other
+  "mov r2, #0x0;" // unused registers
+  "mov r1, #0x0;" // Repeat for other
+  "mov r1, #0x0;" // unused registers
+  "mov r0, #0x0;" // Repeat for other
+  "mov r0, #0x0;" // unused registers
+  "mov r7, #0xd0;" // setresuid syscall
+  "swi #0;" // Linux kernel takes over
+  "mov %[ret], r0;" // Store return value in r0
+  : [ret] "=r" (ret) :: "r0", "r1","r2","r3","r4","r5","r6","r7","r8","r9","r10" );
+  GPIO_CLR = 1 << 4;
+  system("id -ru");
+  if(ret == 0)
   {
-    GPIO_SET = 1 << 4;
-    sleep(1);
-    GPIO_CLR = 1 << 4;
-    sleep(1);
+    printf("winner winner chicken dinner");
+    system("/bin/sh");
   }
 
   return 0;
