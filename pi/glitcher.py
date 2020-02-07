@@ -37,7 +37,7 @@ print("OK, go")
 
 scope.glitch.offset = 45
 scope.glitch.width = 45
-scope.glitch.repeat = 205
+scope.glitch.repeat = 10
 # scope.glitch.repeat = 235
 scope.glitch.ext_offset =5
 
@@ -80,20 +80,28 @@ if CONFIG_DO_RESET:
 #5 is earliest
 #850 is the latest
 
+import uuid
+
 import base64
-f = open("log.csv","w")
+
+logname = "logs/log-%s.csv" % uuid.uuid4()
+f = open(logname,"w")
 
 glitchBrute = 0
 
 tryme = 0
 
-while scope.glitch.ext_offset < 850:
-  if tryme == 10:
+import random
+
+scope.glitch.ext_offset = 0
+while scope.glitch.ext_offset < 290:
+  scope.glitch.repeat = random.randint(135,205)
+  if tryme == 20:
     tryme = 0
-    scope.glitch.ext_offset += 7
+    scope.glitch.ext_offset += 3
   else:
     tryme += 1
-  print("Glitching @ %d" % scope.glitch.ext_offset)
+  print("Glitching @ %d, %d" % (scope.glitch.ext_offset,scope.glitch.repeat))
   ser.flush()
   scope.arm()
   ser.write(b"./tryme\n")
@@ -106,6 +114,7 @@ while scope.glitch.ext_offset < 850:
   # except:
   #   pass
   ser.timeout = 0.5
+  d = ""
   d = ser.read(1024)
   print(d)
   ser.timeout = None
@@ -122,7 +131,9 @@ while scope.glitch.ext_offset < 850:
     ser.flush()
     resetDevice()
     doLogin()
-  f.write("%d,%s\n" % (scope.glitch.ext_offset,base64.b64encode(d)))
+  f.write("%d,%d,%s\n" % (scope.glitch.ext_offset,scope.glitch.repeat,base64.b64encode(d)))
+
+print(logname)
 
 f.close()
 scope.dis()

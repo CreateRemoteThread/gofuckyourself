@@ -6,6 +6,7 @@ import os
 from collections import namedtuple
 import csv
 import serial
+import random
 
 import numpy as np
 import sys
@@ -37,7 +38,7 @@ print("OK, go")
 
 scope.glitch.offset = 45
 scope.glitch.width = 45
-scope.glitch.repeat = 205
+scope.glitch.repeat = 165
 # scope.glitch.repeat = 235
 scope.glitch.ext_offset =5
 
@@ -93,7 +94,8 @@ while scope.glitch.ext_offset < 850:
     scope.glitch.ext_offset += 7
   else:
     tryme += 1
-  print("Glitching @ %d" % scope.glitch.ext_offset)
+  scope.glitch.repeat = random.randint(165,235)
+  print("Glitching @ %d (%d repeat)" % (scope.glitch.ext_offset,scope.glitch.repeat))
   ser.flush()
   scope.arm()
   ser.write(b"./bonk\n")

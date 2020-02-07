@@ -1,6 +1,8 @@
 cwtest/glitchsimple.hex
 cwtest/chipshouter
 
+pi/logs/*
+
 __pycache__/
 *.py[cod]
 *$py,class

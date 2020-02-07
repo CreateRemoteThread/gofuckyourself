@@ -54,9 +54,12 @@ int main(int argc, char **argv)
 
   INP_GPIO(4); // must use INP_GPIO before we can use OUT_GPIO
   OUT_GPIO(4);
+GPIO_CLR = 1 << 4;
 
   int ret = 0;
-  
+  int x, y, z = 0;
+  // int out = 0;  
+
   GPIO_SET = 1 << 4;
   asm volatile (
   "mov r10, #0x0;" // Repeat for other
@@ -86,10 +89,25 @@ int main(int argc, char **argv)
   "mov %[ret], r0;" // Store return value in r0
   : [ret] "=r" (ret) :: "r0", "r1","r2","r3","r4","r5","r6","r7","r8","r9","r10" );
   GPIO_CLR = 1 << 4;
-  system("id -ru");
+  for(x = 0;x < 2500;x++) 
+  {
+    for(y = 0;y < 2500;y++)
+    {
+      z++;
+    }
+  }
+  printf("%d\n",z);
   if(ret == 0)
   {
     printf("winner winner chicken dinner");
+    fflush(stdout);
+    system("/bin/sh");
+  }
+
+  if(geteuid() == 0)
+  {
+    printf("winner winner chicken dinner");
+    fflush(stdout);
     system("/bin/sh");
   }
 
