@@ -1,8 +1,6 @@
 # :w:q
 
-![Just for fun](fun/rpi-pewpewpew.PNG)
-
-CODE MIGRATION TO PY3 IN PROGRESS.
+![Just for fun](fun/glitching-success-full.PNG)
 
 This repository contains my work on fault injection, for a variety of production and test targets.
 
