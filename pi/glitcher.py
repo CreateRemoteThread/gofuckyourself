@@ -93,12 +93,12 @@ tryme = 0
 
 import random
 
-scope.glitch.ext_offset = 0
-while scope.glitch.ext_offset < 290:
-  scope.glitch.repeat = random.randint(135,205)
-  if tryme == 20:
+scope.glitch.ext_offset = 195
+while scope.glitch.ext_offset < 250:
+  scope.glitch.repeat = random.randint(125,135)
+  if tryme == 100:
     tryme = 0
-    scope.glitch.ext_offset += 3
+    scope.glitch.ext_offset += 1
   else:
     tryme += 1
   print("Glitching @ %d, %d" % (scope.glitch.ext_offset,scope.glitch.repeat))
@@ -113,9 +113,9 @@ while scope.glitch.ext_offset < 290:
   #   scope.capture()
   # except:
   #   pass
-  ser.timeout = 0.5
+  ser.timeout = 0.75
   d = ""
-  d = ser.read(1024)
+  d = ser.read(999999)
   print(d)
   ser.timeout = None
   if b"dinner" in d:
@@ -123,8 +123,17 @@ while scope.glitch.ext_offset < 290:
     scope.dis()
     target.dis()
     sys.exit(0)
-  elif b"pi@raspberry" in d:
+  elif b"dinner" in d and b"geteuid" in d:
+    print("Op success (Maybe)")
+    scope.dis()
+    target.dis()
+    sys.exit(0)
+  elif b"pi@raspberrypi:~$" in d:
     print("No reset")
+    if b"Segmentation fault\r\npi@raspberrypi:~$" in d:
+      print("Special case, continuing with no reset")
+    elif b"6250000" not in d:
+      print("Machine corruption - possibly glitching too late")
     pass
   else:
     print("Resetting device")

