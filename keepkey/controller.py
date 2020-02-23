@@ -4,6 +4,7 @@ import phywhisperer.usb as pw
 import csv
 import base64
 import random
+import pickle
 
 f_csv = open("classifier.csv","w")
 spamwriter = csv.writer(f_csv,delimiter=',',quotechar='\"')
@@ -55,9 +56,9 @@ from keepkeylib.transport_hid import HidTransport
 scope.glitch.offset=45
 quietMode = False
 
-for i in range(0,1000):
-  try_ext_offset = 30
-  try_repeat = 67
+for i in range(1,1000):
+  try_ext_offset = random.randint(1,30)
+  try_repeat = random.randint(20,30)
   scope.glitch.ext_offset = try_ext_offset
   scope.glitch.repeat = try_repeat
   print("Preparing for glitch at %d, %d width" % (try_ext_offset,try_repeat))
@@ -78,23 +79,22 @@ for i in range(0,1000):
   phy.set_capture_size(1025)
   client = KeepKeyClient(transport)
   scope.arm()
-  time.sleep(0.5)
   phy.arm()
   time.sleep(0.5)
-  input("Logic!")
-  time.sleep(0.5)
-  data = client.ping("HelloHelloHelloHelloHello")
-  print(data)
-  data = base64.b64encode(data.encode("utf-8"))
-  time.sleep(0.5)
-  input("Did we fire?")
+  try:
+    data = client.ping("HelloHelloHelloHelloHello")
+    print(data)
+    if data != "HelloHelloHelloHelloHello":
+      sys.exit(0)
+    data = base64.b64encode(data.encode("utf-8"))
+  except:
+    data = ""
+  phy.wait_disarmed()
   if quietMode:
     continue
-  phy.wait_disarmed()
-  sys.exit(0)
-  spamwriter.writerow([try_ext_offset,try_repeat,data])
   raw = phy.read_capture_data()
   packets = phy.split_packets(raw)
+  spamwriter.writerow([try_ext_offset,try_repeat,data,base64.b64encode(pickle.dumps(raw))])
   printPackets = pw.USBSimplePrintSink(highspeed=phy.get_usb_mode() == 'HS')
   for packet in packets:
     printPackets.handle_usb_packet(ts=packet['timestamp'],buf=bytearray(packet['contents']),flags=0)

@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 
 from collections import namedtuple 
+import pickle
 
 Range = namedtuple("Range",["min","max","step"])
+
+class ClassifierCore:
+  def __init__(self):
+    pass
+
+  def reportResult(self,time,width,report):
+    pass
 
 class GlitchCore:
   def __init__(self):
