@@ -21,8 +21,6 @@ phy.set_power_source("off")
 pattern = [ord(x) for x in "xyabc123"]
 pattern_true = [ord(x) for x in "Hello"]
 print(pattern)
-phy.set_trigger(num_triggers=1,delays=[0],widths=[100])
-phy.set_pattern(pattern_true,mask=[0xff for c in pattern_true])
 import time
 
 print("Configuring ChipWhisperer")
@@ -55,13 +53,19 @@ from keepkeylib.transport_hid import HidTransport
 
 scope.glitch.offset=45
 quietMode = False
+oneshot = False
+scope.glitch.ext_offset = 5
 
-for i in range(1,1000):
-  try_ext_offset = random.randint(1,30)
-  try_repeat = random.randint(20,30)
-  scope.glitch.ext_offset = try_ext_offset
+# dx = 0.8836822808156025
+
+# randomize in the phywhisperer. 
+for i in range(1,250):
+  delay = random.uniform(0.15,0.90)
+  phy.set_trigger(num_triggers=1,delays=[phy.ms_trigger(delay)],widths=[100])
+  phy.set_pattern(pattern_true,mask=[0xff for c in pattern_true])
+  try_repeat = random.randint(27,32)
   scope.glitch.repeat = try_repeat
-  print("Preparing for glitch at %d, %d width" % (try_ext_offset,try_repeat))
+  print("Preparing for attempt %d, glitch at %f, %d width" % (i,delay,try_repeat))
   phy.set_power_source("off")
   # phy.set_usb_mode(mode="LS")
   time.sleep(0.5)
@@ -80,6 +84,8 @@ for i in range(1,1000):
   client = KeepKeyClient(transport)
   scope.arm()
   phy.arm()
+  if oneshot:
+    input("Hit enter to fire glitch event...")
   time.sleep(0.5)
   try:
     data = client.ping("HelloHelloHelloHelloHello")
@@ -94,11 +100,13 @@ for i in range(1,1000):
     continue
   raw = phy.read_capture_data()
   packets = phy.split_packets(raw)
-  spamwriter.writerow([try_ext_offset,try_repeat,data,base64.b64encode(pickle.dumps(raw))])
+  spamwriter.writerow([delay,try_repeat,data,base64.b64encode(pickle.dumps(raw))])
   printPackets = pw.USBSimplePrintSink(highspeed=phy.get_usb_mode() == 'HS')
   for packet in packets:
     printPackets.handle_usb_packet(ts=packet['timestamp'],buf=bytearray(packet['contents']),flags=0)
-
+  if oneshot:
+    print("Oneshot test mode, bye!")
+    sys.exit(0)
 
 f_csv.close()
 print("Done!")

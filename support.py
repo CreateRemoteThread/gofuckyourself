@@ -2,15 +2,47 @@
 
 from collections import namedtuple 
 import pickle
+from enum import Enum
 
 Range = namedtuple("Range",["min","max","step"])
 
-class ClassifierCore:
+class Status(Enum):
+  Expected = "green"
+  Mute = "gold"
+  Glitch = "red"
+
+class ReportingCore:
   def __init__(self):
+    self.resultsdb = {} # sort by color
     pass
 
-  def reportResult(self,time,width,report):
-    pass
+  def addResult(self,time,width,status):
+    status = status.value
+    if status in self.resultsdb.keys():
+      self.resultsdb[status].append( (time,width) )
+    else:
+      self.resultsdb[status] = [ (time,width) ]
+
+  def onclick(self,event):
+    if event.xdata is not None:
+      print("%f,%d" % (event.xdata,event.ydata))
+
+  def startPlot(self):
+    import matplotlib.pyplot as plt
+    fig,ax = plt.subplots()
+    from matplotlib.ticker import LinearLocator
+    import matplotlib.ticker
+    for k in self.resultsdb.keys():
+      x_pts = [x for (x,y) in self.resultsdb[k]]
+      y_pts = [y for (x,y) in self.resultsdb[k]]
+      ax.scatter(x_pts,y_pts,marker="d",color=k)
+    ax.get_xaxis().set_major_locator(LinearLocator(numticks=15))
+    ax.xaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter("%.2f"))
+    # ax.set_xticks(["%.2g" % x_f for x_f in ax.get_xticks()])
+    plt.xticks(rotation=90)
+    plt.title("pew pew plot")
+    fig.canvas.mpl_connect("button_press_event",self.onclick)
+    plt.show()
 
 class GlitchCore:
   def __init__(self):

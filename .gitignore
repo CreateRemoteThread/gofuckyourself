@@ -3,6 +3,8 @@ cwtest/chipshouter
 
 pi/logs/*
 
+keepkey/classifier.csv
+
 __pycache__/
 *.py[cod]
 *$py,class
