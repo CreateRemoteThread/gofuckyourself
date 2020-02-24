@@ -7,6 +7,7 @@ import pickle
 import sys
 import getopt
 import csv
+import string
 
 # reads classifier csv
 # and feeds it into classifier core
@@ -15,6 +16,15 @@ if __name__ == "__main__":
   if len(sys.argv) != 2:
     print("Use: ./reader.py <blah>")
     sys.exit(0)
+
+def tryfix(char_array):
+  out = ""
+  for c in char_array:
+    if chr(c) in string.printable:
+      out += chr(c)
+    else:
+      out += "."
+  return out
 
 phy = pw.Usb()
 
@@ -29,15 +39,26 @@ for row in spamreader:
   print("%s:%s:%s" % (delay,width,base64.b64decode(output)))
   delay = float(delay)
   width = int(width)
-  if base64.b64decode(output) == b'HelloHelloHelloHelloHello':
-    c.addResult(delay,width,status=support.Status.Expected)
-  else:
-    c.addResult(delay,width,status=support.Status.Mute)
+  muteFlag = False
   data = base64.b64decode(rawdata)
   data = pickle.loads(data)
   packets=phy.split_packets(data)
   printPackets=pw.USBSimplePrintSink(highspeed=1)
   for packet in packets:
-    printPackets.handle_usb_packet(ts=packet['timestamp'],buf=bytearray(packet['contents']),flags=0)
+    if packet["size"] > 30 and packet["size"] < 67:
+      print(tryfix(packet["contents"]))
+      c.addResult(delay,width,status=support.Status.Glitch)
+      muteFlag = True
+      # sys.exit(0)
+    if packet["contents"] == [45,0,16] and muteFlag is False:
+      c.addResult(delay,width,status=support.Status.Mute)
+      muteFlag = True
+    # print(packet)
+    # printPackets.handle_usb_packet(ts=packet['timestamp'],buf=bytearray(packet['contents']),flags=0)
+  if base64.b64decode(output) == b'HelloHelloHelloHelloHello' and muteFlag is False:
+    c.addResult(delay,width,status=support.Status.Expected)
+    muteFlag = True
+  if muteFlag is False:
+    c.addResult(delay,width,status=support.Status.Glitch)
 
 c.startPlot()

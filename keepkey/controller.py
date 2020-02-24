@@ -57,8 +57,8 @@ quietMode = False
 oneshot = False
 scope.glitch.ext_offset = 5
 
-# dx = 0.8836822808156025
-dx = 0.6558979765582688
+# dx = 0.6558979765582688 # usb corruption.
+dx = None
 
 def sighandler(signum,frame):
   print("Exception handler hit!")
@@ -67,12 +67,15 @@ def sighandler(signum,frame):
 signal.signal(signal.SIGALRM,sighandler)
 
 # randomize in the phywhisperer. 
-for i in range(1,250):
-  delay = random.uniform(dx - 0.05,dx + 0.05)
+for i in range(1,1000):
+  if dx is None:
+    delay = random.uniform(0.13,0.15)
+  else:
+    delay = random.uniform(dx - 0.05,dx + 0.05)
   phy.set_trigger(num_triggers=1,delays=[phy.ms_trigger(delay)],widths=[100])
   phy.set_pattern(pattern_true,mask=[0xff for c in pattern_true])
   # try_repeat = random.randint(27,32)
-  try_repeat = random.randint(30,46)
+  try_repeat = random.randint(36,40)
   scope.glitch.repeat = try_repeat
   print("Preparing for attempt %d, glitch at %f, %d width" % (i,delay,try_repeat))
   phy.set_power_source("off")
