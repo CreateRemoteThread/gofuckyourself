@@ -5,6 +5,7 @@ import csv
 import base64
 import random
 import pickle
+import signal
 
 f_csv = open("classifier.csv","w")
 spamwriter = csv.writer(f_csv,delimiter=',',quotechar='\"')
@@ -19,7 +20,7 @@ phy.reset_fpga()
 phy.addpattern = True
 phy.set_power_source("off")
 pattern = [ord(x) for x in "xyabc123"]
-pattern_true = [ord(x) for x in "Hello"]
+pattern_true = [ord(x) for x in "HelloHelloHelloHelloHello"]
 print(pattern)
 import time
 
@@ -57,13 +58,21 @@ oneshot = False
 scope.glitch.ext_offset = 5
 
 # dx = 0.8836822808156025
+dx = 0.6558979765582688
+
+def sighandler(signum,frame):
+  print("Exception handler hit!")
+  raise Exception("bye")
+
+signal.signal(signal.SIGALRM,sighandler)
 
 # randomize in the phywhisperer. 
 for i in range(1,250):
-  delay = random.uniform(0.15,0.90)
+  delay = random.uniform(dx - 0.05,dx + 0.05)
   phy.set_trigger(num_triggers=1,delays=[phy.ms_trigger(delay)],widths=[100])
   phy.set_pattern(pattern_true,mask=[0xff for c in pattern_true])
-  try_repeat = random.randint(27,32)
+  # try_repeat = random.randint(27,32)
+  try_repeat = random.randint(30,46)
   scope.glitch.repeat = try_repeat
   print("Preparing for attempt %d, glitch at %f, %d width" % (i,delay,try_repeat))
   phy.set_power_source("off")
@@ -71,23 +80,42 @@ for i in range(1,250):
   time.sleep(0.5)
   phy.set_power_source("host")
   time.sleep(3.0)
-  try:
-    path = HidTransport.enumerate()[0][0]
-  except:
-    print("Enumerate failed, continuing next pass")
+  enumerateStatus = False
+  enumerateCount = 0
+  while enumerateStatus is False:
+    try:
+      signal.alarm(10)
+      print("Attempting enumeration...")
+      path = HidTransport.enumerate()[0][0]
+      print("Path OK!")
+      enumerateStatus = True
+      signal.alarm(0)
+    except:
+      print("Enumerate failed, continuing next pass")
+      time.sleep(0.5)
+      if enumerateCount == 3:
+        break
+      enumerateCount += 1
+      continue
+  if enumerateStatus is False:
+    print("Enumerate hard failed, power cycling")
     continue
+  print("Fetching path...")
   for d in HidTransport.enumerate():
     if path in d:
       transport = HidTransport(d)
       break
+  print("Transport locked, continuing...")
   phy.set_capture_size(1025)
   client = KeepKeyClient(transport)
+  print("KeepKeyClient OK, arming glitcher...")
   scope.arm()
   phy.arm()
+  print("Arm OK")
   if oneshot:
     input("Hit enter to fire glitch event...")
-  time.sleep(0.5)
   try:
+    signal.alarm(10)
     data = client.ping("HelloHelloHelloHelloHello")
     print(data)
     if data != "HelloHelloHelloHelloHello":
@@ -95,6 +123,7 @@ for i in range(1,250):
     data = base64.b64encode(data.encode("utf-8"))
   except:
     data = ""
+  print("Waiting for disarm...")
   phy.wait_disarmed()
   if quietMode:
     continue
@@ -112,5 +141,3 @@ f_csv.close()
 print("Done!")
 sys.exit(0)
 
-
-# f_csv.close()
