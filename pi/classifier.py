@@ -5,10 +5,13 @@ import csv
 import sys
 import glob
 import re
+import support
 
 crashes = 0
 entries = 0
 wins = 0
+
+report = support.ReportingCore()
 
 PC_crashes = {}
 
@@ -20,8 +23,14 @@ for fn in glob.glob("logs/*.csv"):
       (loc,len,result) = row
       result = result[2:-1]
       if result == "Li90cnltZQ0KNjI1MDAwMA0KZ3JpOjEwMDAvMTAwMC8xMDAwcGlAcmFzcGJlcnJ5cGk6fiQg":
+        # default-result
+        report.addResult(len,loc,status=support.Status.Expected)
+        continue
+      elif result == "Li90cnltZQ0K":
+        report.addResult(len,loc,status=support.Status.Mute)
         continue
       else:
+        report.addResult(len,loc,status=support.Status.Glitch)
         try:
           result = base64.b64decode(result).decode("utf-8")
         except:
@@ -48,6 +57,8 @@ d_view.sort(reverse=True)
 
 for d,v in d_view:
   print("%s:%d" % (v,d))
+
+# report.startPlot()
 
 # for x in PC_crashes.keys():
 #   print("%s:%d" % (x,PC_crashes[x]))

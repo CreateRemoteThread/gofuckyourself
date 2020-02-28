@@ -107,7 +107,7 @@ GPIO_CLR = 1 << 4;
     fflush(stdout);
     printf("gri:%d/%d/%d",id0,id1,id2);
     setuid(0);
-    execve("/bin/bash",0,0);
+    execve("/bin/dash",0,0);
     // system("/bin/sh");
   }
 

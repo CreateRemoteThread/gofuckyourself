@@ -12,6 +12,8 @@ spamwriter = csv.writer(f_csv,delimiter=',',quotechar='\"')
 
 import sys
 
+refptn = [195, 63, 35, 35, 0, 2, 0, 0, 0, 27, 10, 25, 72, 101, 108, 108, 111, 72, 101, 108, 108, 111, 72, 101, 108, 108, 111, 72, 101, 108, 108, 111, 72, 101, 108, 108, 111, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 206, 206]
+
 print("Configuring PhyWhispererUSB")
 phy = pw.Usb()
 # phy.set_usb_mode("LS")
@@ -58,7 +60,9 @@ oneshot = False
 scope.glitch.ext_offset = 5
 
 # dx = 0.6558979765582688 # usb corruption.
-dx = None
+# dx = 0.6519845071548444
+dx =0.165299
+# dx = None
 
 def sighandler(signum,frame):
   print("Exception handler hit!")
@@ -69,13 +73,13 @@ signal.signal(signal.SIGALRM,sighandler)
 # randomize in the phywhisperer. 
 for i in range(1,1000):
   if dx is None:
-    delay = random.uniform(0.13,0.15)
+    delay = random.uniform(0.50,0.55)
   else:
     delay = random.uniform(dx - 0.05,dx + 0.05)
   phy.set_trigger(num_triggers=1,delays=[phy.ms_trigger(delay)],widths=[100])
   phy.set_pattern(pattern_true,mask=[0xff for c in pattern_true])
   # try_repeat = random.randint(27,32)
-  try_repeat = random.randint(36,40)
+  try_repeat = random.randint(37,38)
   scope.glitch.repeat = try_repeat
   print("Preparing for attempt %d, glitch at %f, %d width" % (i,delay,try_repeat))
   phy.set_power_source("off")
@@ -136,6 +140,9 @@ for i in range(1,1000):
   printPackets = pw.USBSimplePrintSink(highspeed=phy.get_usb_mode() == 'HS')
   for packet in packets:
     printPackets.handle_usb_packet(ts=packet['timestamp'],buf=bytearray(packet['contents']),flags=0)
+    if packet["size"] > 30:
+      if packet["contents"] != refptn:
+        print("Glitch here!")
   if oneshot:
     print("Oneshot test mode, bye!")
     sys.exit(0)

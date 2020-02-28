@@ -17,6 +17,9 @@ if __name__ == "__main__":
     print("Use: ./reader.py <blah>")
     sys.exit(0)
 
+def tryhex(char_array):
+  return "".join(["%02x" % x for x in char_array])
+
 def tryfix(char_array):
   out = ""
   for c in char_array:
@@ -45,8 +48,11 @@ for row in spamreader:
   packets=phy.split_packets(data)
   printPackets=pw.USBSimplePrintSink(highspeed=1)
   for packet in packets:
+    # print(packet)
     if packet["size"] > 30 and packet["size"] < 67:
+      print(tryhex(packet["contents"]))
       print(tryfix(packet["contents"]))
+      print("%f:GLITCH" % delay)
       c.addResult(delay,width,status=support.Status.Glitch)
       muteFlag = True
       # sys.exit(0)
@@ -59,6 +65,7 @@ for row in spamreader:
     c.addResult(delay,width,status=support.Status.Expected)
     muteFlag = True
   if muteFlag is False:
+    print("%f:GLITCH" % delay)
     c.addResult(delay,width,status=support.Status.Glitch)
 
 c.startPlot()
