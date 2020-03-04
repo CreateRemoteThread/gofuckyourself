@@ -37,8 +37,8 @@ oneshot = False
 
 # dx = 0.6558979765582688 # usb corruption.
 # dx = 0.6519845071548444
-d =0.165299
-# dx = None
+# dx = 0.165299
+dx = None
 
 def sighandler(signum,frame):
   print("Exception handler hit!")
@@ -52,7 +52,7 @@ for i in range(1,1000):
     delay = random.uniform(0.1,0.9)
   else:
     delay = random.uniform(dx - 0.05,dx + 0.05)
-  width = random.randint(55,75)
+  width = random.randint(75,105)
   phy.set_trigger(num_triggers=1,delays=[phy.ms_trigger(delay)],widths=[width])
   phy.set_pattern(pattern_true,mask=[0xff for c in pattern_true])
   print("Preparing for attempt %d, glitch at %f, %d width" % (i,delay,width))

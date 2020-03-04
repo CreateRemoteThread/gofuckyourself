@@ -59,7 +59,7 @@ for row in spamreader:
     if packet["contents"] == [45,0,16] and muteFlag is False:
       c.addResult(delay,width,status=support.Status.Mute)
       muteFlag = True
-    # print(packet)
+    print(packet)
     # printPackets.handle_usb_packet(ts=packet['timestamp'],buf=bytearray(packet['contents']),flags=0)
   if base64.b64decode(output) == b'HelloHelloHelloHelloHello' and muteFlag is False:
     c.addResult(delay,width,status=support.Status.Expected)
