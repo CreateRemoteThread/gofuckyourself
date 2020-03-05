@@ -38,7 +38,8 @@ phy.addpattern = True
 phy.reset_fpga()
 phy.set_power_source("off")
 
-pattern_true = [0x80, 0x06, 0x02, 0x03, 0x09, 0x04]
+# pattern_true = [0x80, 0x06, 0x02, 0x03, 0x00, 0x00,0x00,0x10]
+pattern_true = [0x80, 0x06, 0x02, 0x03, 0x09, 0x04,0x00,0x10]
 print(pattern_true)
 # print(pattern)
 import time
@@ -64,33 +65,40 @@ signal.signal(signal.SIGALRM,sighandler)
 # randomize in the phywhisperer. 
 for i in range(1,1000):
   if dx is None:
-    delay = random.uniform(0,69000)
+    delay = random.randint(100,2000)
   else:
     delay = random.uniform(dx - 0.05,dx + 0.05)
-  width = random.randint(25,105)
-  # pattern_true = [0x00]
-  phy.set_capture_size(1024)
+  width = random.randint(125,155)
+  # width = random.randint(235,355)
+  phy.set_capture_size(256)
   phy.set_pattern(pattern_true,mask=[0xff for c in pattern_true])
-  phy.set_trigger(num_triggers=1,delays=[phy.ns_trigger(delay)],widths=[width])
+  phy.set_trigger(num_triggers=1,delays=[int(delay)],widths=[width])
+  # phy.set_trigger(num_triggers=1,delays=[phy.ns_trigger(delay)],widths=[width])
   print("Preparing for attempt %d, glitch at %f, %d width" % (i,delay,width))
   phy.set_power_source("off")
   time.sleep(0.5)
-  # phy.set_usb_mode(mode="LS")
   phy.set_power_source("host")
   time.sleep(3.0)
   print("-arm")
   phy.arm()
   time.sleep(0.2)
-  buf = sendRequest()
+  data = ""
   try:
-    blen = buf[0] & 0xfe
-    if hexversion >= 0x03020000:
-      _name = buf[2:blen].tobytes().decode("utf-16-le")
-    else:
-      _name = buf[2:blen].tostring().decode("utf-16-le")
-    data = _name
-    print(data)
+    buf = sendRequest()
   except:
+    buf = None
+  if buf is not None:
+    try:
+      blen = buf[0] & 0xfe
+      if hexversion >= 0x03020000:
+        _name = buf[2:blen].tobytes().decode("utf-16-le")
+      else:
+        _name = buf[2:blen].tostring().decode("utf-16-le")
+      data = _name
+      print(data)
+    except:
+      data = ""
+  else:
     data = ""
   print("Waiting disarm")
   phy.wait_disarmed()
