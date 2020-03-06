@@ -34,7 +34,7 @@ def tryfix(char_array):
 phy = pw.Usb()
 
 c = support.ReportingCore()
-
+sanity = [75, 16, 3, 75, 0, 101, 0, 101, 0, 112, 0, 75, 0, 101, 0, 121, 0, 238, 104]
 f = open(sys.argv[1],"r")
 spamreader = csv.reader(f,delimiter=',')
 for row in spamreader:
@@ -50,6 +50,13 @@ for row in spamreader:
   printPackets=pw.USBSimplePrintSink(highspeed=1)
   for packet in packets:
     print(packet)
+    printPackets.handle_usb_packet(ts=packet["timestamp"],buf=bytearray(packet["contents"]),flags=0)
+    if packet["size"] == 3 and packet["contents"][0] == 45:
+      print("SETUP, probably muted")
+      c.addResult(delay,width,status=support.Status.Mute)
+      muteFlag = True
+    if packet["size"] > 3 and packet["contents"] != sanity:
+      print(packet)
     if packet["size"] > 20:
       print(tryhex(packet["contents"]))
       print(tryfix(packet["contents"]))
@@ -59,12 +66,13 @@ for row in spamreader:
     if packet["contents"] == [45,0,16] and muteFlag is False:
       c.addResult(delay,width,status=support.Status.Mute)
       muteFlag = True
-    print(packet)
+    if (len(packet["contents"]) == 3 and packet["contents"][0] == 165):
+      continue
   if output == "KeepKey" and muteFlag is False:
     c.addResult(delay,width,status=support.Status.Expected)
     muteFlag = True
   if muteFlag is False:
-    print("%f:GLITCH" % delay)
-    c.addResult(delay,width,status=support.Status.Glitch)
+    print("%f:MUTE:%s" % (delay,tryhex(packet["contents"])))
+    c.addResult(delay,width,status=support.Status.Mute)
 
 c.startPlot()

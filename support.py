@@ -10,6 +10,7 @@ class Status(Enum):
   Expected = "green"
   Mute = "gold"
   Glitch = "red"
+  GoodGlitch = "blue"
 
 class ReportingCore:
   def __init__(self):
