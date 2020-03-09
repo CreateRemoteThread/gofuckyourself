@@ -14,6 +14,7 @@ import string
 
 DATA_EXPECTED = "Device is already initialized. Use Wipe first."
 MUTE_EXPECTED = "NonCallException:read error"
+PKT_SANITY = [0x65,0x76,0x69,0x63,0x65,0x20,0x69,0x73,0x20,0x61,0x6c,0x72,0x65,0x61,0x64,0x79,0x20,0x69,0x6e,0x69,0x74,0x69,0x61,0x6c,0x69]
 
 if __name__ == "__main__":
   if len(sys.argv) != 2:
@@ -34,8 +35,10 @@ def tryfix(char_array):
 
 phy = pw.Usb()
 
+
+
 c = support.ReportingCore()
-sanity = [75, 16, 3, 75, 0, 101, 0, 101, 0, 112, 0, 75, 0, 101, 0, 121, 0, 238, 104]
+# sanity = [75, 16, 3, 75, 0, 101, 0, 101, 0, 112, 0, 75, 0, 101, 0, 121, 0, 238, 104]
 f = open(sys.argv[1],"r")
 spamreader = csv.reader(f,delimiter=',')
 for row in spamreader:

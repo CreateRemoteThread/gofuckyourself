@@ -7,6 +7,7 @@ import random
 import pickle
 import signal
 import uuid
+import time
 
 f_csv = open("pewpew-%s.csv" % uuid.uuid4(),"w")
 spamwriter = csv.writer(f_csv,delimiter=',',quotechar='\"')
@@ -31,14 +32,14 @@ from keepkeylib.transport_hid import HidTransport
 
 def sighandler(signum,frame):
   print("Exception handler hit!")
-  raise Exception("bye")
+  raise Exception("Exception handler hit!")
 
 signal.signal(signal.SIGALRM,sighandler)
 
 # 58166 (interrupt in?)
 
 for i in range(1,1000):
-  delay = random.randint(500,20000)
+  delay = random.randint(1200,20000)
   try_repeat = random.randint(35,75)
   # try_repeat = 30
   phy.set_trigger(num_triggers=1,delays=[delay],widths=[try_repeat])
@@ -52,12 +53,10 @@ for i in range(1,1000):
   enumerateCount = 0
   while enumerateStatus is False:
     try:
-      signal.alarm(10)
       print("Attempting enumeration...")
       path = HidTransport.enumerate()[0][0]
       print("Path OK!")
       enumerateStatus = True
-      signal.alarm(0)
     except:
       print("Enumerate failed, continuing next pass")
       time.sleep(0.5)
@@ -82,15 +81,15 @@ for i in range(1,1000):
   try:
     signal.alarm(10)
     client.reset_device(True,256,False,False,"",'english',safety=False)
-    print("NO EXCEPTION")
     data = "No exception"
+    signal.alarm(0)
   except keepkeylib.client.CallException as e:
     [code,error] = e.args
     data = "KKError: %s" % error
   except Exception as e:
     print(e)
     data = "NonCallException:%s" % e
-  signal.alarm(0)
+  # signal.alarm(0)
   print(data)
   print("Waiting for disarm...")
   phy.wait_disarmed()
