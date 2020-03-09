@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# reader for KeepKey
-
 import support
 import phywhisperer.usb as pw
 import base64
@@ -13,6 +11,9 @@ import string
 
 # reads classifier csv
 # and feeds it into classifier core
+
+DATA_EXPECTED = "Device is already initialized. Use Wipe first."
+MUTE_EXPECTED = "NonCallException:read error"
 
 if __name__ == "__main__":
   if len(sys.argv) != 2:
@@ -52,27 +53,19 @@ for row in spamreader:
     print(packet)
     printPackets.handle_usb_packet(ts=packet["timestamp"],buf=bytearray(packet["contents"]),flags=0)
     if packet["size"] == 3 and packet["contents"][0] == 45:
-      print("SETUP, probably muted")
-      c.addResult(delay,width,status=support.Status.Mute)
-      muteFlag = True
-    if packet["size"] > 3 and packet["contents"] != sanity:
-      print(packet)
-    if packet["size"] > 20:
-      print(tryhex(packet["contents"]))
-      print(tryfix(packet["contents"]))
-      print("Pew!")
-      c.addResult(delay,width,status=support.Status.Glitch)
-      muteFlag = True
-    if packet["contents"] == [45,0,16] and muteFlag is False:
+      print("MUTE-SETUP")
       c.addResult(delay,width,status=support.Status.Mute)
       muteFlag = True
     if (len(packet["contents"]) == 3 and packet["contents"][0] == 165):
       continue
-  if output == "KeepKey" and muteFlag is False:
+  if MUTE_EXPECTED in output and muteFlag is False:
+    c.addResult(delay,width,status=support.Status.Mute)
+    muteFlag = True
+  if DATA_EXPECTED in output and muteFlag is False:
     c.addResult(delay,width,status=support.Status.Expected)
     muteFlag = True
   if muteFlag is False:
-    print("%f:MUTE:%s" % (delay,tryhex(packet["contents"])))
-    c.addResult(delay,width,status=support.Status.Mute)
+    print("%f:GLITCH-UNKNOWN:%s" % (delay,tryhex(packet["contents"])))
+    c.addResult(delay,width,status=support.Status.Glitch)
 
 c.startPlot()

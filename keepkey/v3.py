@@ -17,7 +17,7 @@ from usb.control import get_descriptor
 
 def sendRequest():
   d = usb.core.find(idVendor = 0x2b24,idProduct = 0x0001)
-  buf = get_descriptor(d,0x1000,DESC_TYPE_STRING,d.iProduct,1033)
+  buf = get_descriptor(d,0x0FFE,DESC_TYPE_STRING,d.iProduct,1033)
   return buf
 
 f_csv = open("classifier-%s.csv" % uuid.uuid4(),"w")
@@ -32,7 +32,7 @@ phy.addpattern = True
 phy.reset_fpga()
 phy.set_power_source("off")
 
-pattern_true = [0x80, 0x06, 0x02, 0x03, 0x09, 0x04,0x00,0x10]
+pattern_true = [0x80, 0x06, 0x02, 0x03, 0x09, 0x04,0xFE,0x0F]
 print(pattern_true)
 # print(pattern)
 import time
@@ -54,10 +54,10 @@ signal.signal(signal.SIGALRM,sighandler)
 # randomize in the phywhisperer. 
 for i in range(1,1000):
   if dx is None:
-    delay = random.randint(50,3000)
+    delay = random.randint(350,380)
   else:
     delay = random.uniform(dx - 0.05,dx + 0.05)
-  width = random.randint(75,135)
+  width = random.randint(55,155)
   # width = random.randint(235,355)
   phy.set_capture_size(512)
   phy.set_pattern(pattern_true,mask=[0xff for c in pattern_true])
