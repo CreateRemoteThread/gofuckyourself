@@ -38,7 +38,7 @@ jlink = pylink.JLink()
 jlink.open()
 
 gc = support.GlitchCore()
-gc.setRepeatRange(2,20,1)
+gc.setRepeatRange(2,5,1)
 gc.setWidth(45)
 gc.setOffset(1)
 gc.setExtOffsetRange(800,1600,1)
