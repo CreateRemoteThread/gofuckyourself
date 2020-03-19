@@ -2,6 +2,7 @@
 
 from collections import namedtuple 
 import pickle
+import random
 from enum import Enum
 
 Range = namedtuple("Range",["min","max","step"])
@@ -81,6 +82,14 @@ class GlitchCore:
     self.currentOffset = self.offsetRange.min
     self.currentExtOffset = self.extOffsetRange.min
     self.currentRepeat = self.repeatRange.min
+    random.seed()
+
+  def generateRandomFault(self):
+    width = random.uniform(self.widthRange.min,self.widthRange.max)
+    offset = random.uniform(self.offsetRange.min,self.offsetRange.max)
+    ext_offset = random.randint(self.extOffsetRange.min,self.extOffsetRange.max)
+    repeat = random.randint(self.repeatRange.min,self.repeatRange.max)
+    return (width,offset,ext_offset,repeat)
 
   def generateFault(self):
     # print(self.extOffsetRange)
