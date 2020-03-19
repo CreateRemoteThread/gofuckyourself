@@ -55,7 +55,7 @@ while trycounter < CONFIG_TRY:
   scope.glitch.ext_offset = ext
   print("Trying (try:%d,wait:%d,repeat:%d)..." % (trycounter,scope.glitch.ext_offset,scope.glitch.repeat))
   scope.arm()
-  time.sleep(1.0)
+  time.sleep(0.25)
   scope.io.target_pwr = True
   timeout = 100000
   while target.isDone() is False and timeout > 0:
@@ -63,15 +63,15 @@ while trycounter < CONFIG_TRY:
     time.sleep(0.01)
   if timeout == 0:
     print("scope timed out!")
-  time.sleep(1.0)
+  time.sleep(0.25)
   jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
   try:
-    r = jlink.connect("CORTEX-M0",verbose=True)
+    r = jlink.connect("CORTEX-M3",verbose=True)
   except:
     r = False
   if r is False:
     scope.io.target_pwr = False
-    time.sleep(1)
+    time.sleep(0.25)
   else:
     print("Connected!")
     while True:
