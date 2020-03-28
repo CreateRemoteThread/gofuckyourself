@@ -8,8 +8,9 @@ import base64
 import random
 import pickle
 import signal
+import uuid
 
-f_csv = open("classifier.csv","w")
+f_csv = open("cping-%s.csv" % uuid.uuid4(),"w")
 spamwriter = csv.writer(f_csv,delimiter=',',quotechar='\"')
 
 import sys
@@ -38,22 +39,24 @@ oneshot = False
 # dx = 0.6558979765582688 # usb corruption.
 # dx = 0.6519845071548444
 # dx = 0.165299
-dx = None
+# dx = 0.573139
+dx = 105.050896
 
 def sighandler(signum,frame):
-  print("Exception handler hit!")
-  raise Exception("bye")
+  print("Timeout")
+  raise Exception("Timeout - Bye!")
 
 signal.signal(signal.SIGALRM,sighandler)
 
 # randomize in the phywhisperer. 
 for i in range(1,1000):
   if dx is None:
-    delay = random.uniform(0.1,0.9)
+    delay = random.uniform(35,355)
   else:
-    delay = random.uniform(dx - 0.05,dx + 0.05)
-  width = random.randint(75,105)
-  phy.set_trigger(num_triggers=1,delays=[phy.ms_trigger(delay)],widths=[width])
+    delay = random.uniform(dx - 1,dx + 1)
+  width = random.randint(15,30)
+  phy.set_trigger(num_triggers=1,delays=[phy.us_trigger(delay)],widths=[width])
+  # phy.set_trigger(num_triggers=1,delays=[phy.ns_trigger(delay)],widths=[width])
   phy.set_pattern(pattern_true,mask=[0xff for c in pattern_true])
   print("Preparing for attempt %d, glitch at %f, %d width" % (i,delay,width))
   phy.set_power_source("off")
@@ -65,7 +68,7 @@ for i in range(1,1000):
   enumerateCount = 0
   while enumerateStatus is False:
     try:
-      signal.alarm(10)
+      signal.alarm(3)
       print("Attempting enumeration...")
       path = HidTransport.enumerate()[0][0]
       print("Path OK!")
@@ -91,18 +94,26 @@ for i in range(1,1000):
   client = KeepKeyClient(transport)
   print("KeepKeyClient OK, arming glitcher...")
   phy.arm()
+  skipPacket = False
   print("Arm OK")
   if oneshot:
     input("Hit enter to fire glitch event...")
   try:
-    signal.alarm(10)
+    signal.alarm(3)
     data = client.ping("HelloHelloHelloHelloHello")
     print(data)
+    skipPacket = True
     if data != "HelloHelloHelloHelloHello":
-      sys.exit(0)
+      print("GOOD GLITCH: returned, data unequal...")
     data = base64.b64encode(data.encode("utf-8"))
-  except:
+    # signal.alarm(0)
+  except Exception as e:
+    print(e)
     data = ""
+  finally:
+    print("Final hit")
+    pass
+  signal.alarm(0)
   print("Waiting for disarm...")
   phy.wait_disarmed()
   if quietMode:
@@ -110,6 +121,8 @@ for i in range(1,1000):
   raw = phy.read_capture_data()
   packets = phy.split_packets(raw)
   spamwriter.writerow([delay,width,data,base64.b64encode(pickle.dumps(raw))])
+  if skipPacket:
+    continue
   printPackets = pw.USBSimplePrintSink(highspeed=phy.get_usb_mode() == 'HS')
   for packet in packets:
     printPackets.handle_usb_packet(ts=packet['timestamp'],buf=bytearray(packet['contents']),flags=0)

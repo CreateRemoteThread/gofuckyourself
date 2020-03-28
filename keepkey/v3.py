@@ -57,7 +57,7 @@ for i in range(1,1000):
     delay = random.randint(350,380)
   else:
     delay = random.uniform(dx - 0.05,dx + 0.05)
-  width = random.randint(55,155)
+  width = random.randint(15,25)
   # width = random.randint(235,355)
   phy.set_capture_size(512)
   phy.set_pattern(pattern_true,mask=[0xff for c in pattern_true])

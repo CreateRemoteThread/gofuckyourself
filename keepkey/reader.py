@@ -39,6 +39,7 @@ for row in spamreader:
   (delay,width,output,rawdata) = row
   output = output[2:-1]
   rawdata = rawdata[2:-1]
+  q = base64.b64decode(output)
   print("%s:%s:%s" % (delay,width,base64.b64decode(output)))
   delay = float(delay)
   width = int(width)
@@ -52,7 +53,7 @@ for row in spamreader:
     if packet["size"] > 30 and packet["size"] < 67:
       print(tryhex(packet["contents"]))
       print(tryfix(packet["contents"]))
-      print("%f:GLITCH" % delay)
+      print("%f:GLITCH:%s" % (delay,tryfix(q)))
       c.addResult(delay,width,status=support.Status.Glitch)
       muteFlag = True
       # sys.exit(0)
@@ -65,7 +66,7 @@ for row in spamreader:
     c.addResult(delay,width,status=support.Status.Expected)
     muteFlag = True
   if muteFlag is False:
-    print("%f:GLITCH" % delay)
+    print("%f:GLITCH:%s" % (delay,tryfix(q)))
     c.addResult(delay,width,status=support.Status.Glitch)
 
 c.startPlot()
