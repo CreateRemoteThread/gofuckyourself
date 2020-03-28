@@ -49,8 +49,10 @@ for row in spamreader:
   packets=phy.split_packets(data)
   printPackets=pw.USBSimplePrintSink(highspeed=1)
   for packet in packets:
-    # print(packet)
-    if packet["size"] > 30 and packet["size"] < 67:
+    if len(q) == 0:
+      c.addResult(delay,width,status=support.Status.Mute)
+      muteFlag = True
+    if packet["size"] > 30 and packet["size"] < 67 and muteFlag is False:
       print(tryhex(packet["contents"]))
       print(tryfix(packet["contents"]))
       print("%f:GLITCH:%s" % (delay,tryfix(q)))

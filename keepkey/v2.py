@@ -36,11 +36,8 @@ from keepkeylib.transport_hid import HidTransport
 quietMode = False
 oneshot = False
 
-# dx = 0.6558979765582688 # usb corruption.
-# dx = 0.6519845071548444
-# dx = 0.165299
-# dx = 0.573139
-dx = 105.050896
+# dx = 105.050896 # viable
+dx = 104.439766
 
 def sighandler(signum,frame):
   print("Timeout")
@@ -53,7 +50,7 @@ for i in range(1,1000):
   if dx is None:
     delay = random.uniform(35,355)
   else:
-    delay = random.uniform(dx - 1,dx + 1)
+    delay = random.uniform(dx - 0.2,dx + 0.2)
   width = random.randint(15,30)
   phy.set_trigger(num_triggers=1,delays=[phy.us_trigger(delay)],widths=[width])
   # phy.set_trigger(num_triggers=1,delays=[phy.ns_trigger(delay)],widths=[width])
