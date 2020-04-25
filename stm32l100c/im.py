@@ -32,7 +32,7 @@ def initAll():
   print("Configuring CS")
   cs = chipshouter.ChipSHOUTER("/dev/ttyUSB0")
   cs.reset_config = True
-  cs.voltage = 350
+  cs.voltage = 250
   cs.clr_armed = True
 
 initAll()

@@ -6,6 +6,7 @@ import time
 import random
 import chipshouter
 import pylink
+import support
 
 scope = None
 target = None
@@ -31,18 +32,24 @@ def initAll():
   scope.io.glitch_lp = False
   scope.io.glitch_hp = True
   scope.glitch.trigger_src = 'ext_single'
+  print("Configuring JLink")
+  if len(sys.argv) > 1:
+    lib = pylink.library.Library(sys.argv[1])
+    jlink = pylink.JLink(lib)
+  else:
+    jlink = pylink.JLink()
+  jlink.open()
   print("Configuring ChipShouter")
   cs = chipshouter.ChipSHOUTER("/dev/ttyUSB0")
+  if cs.armed == True:
+    cs.armed = False
   cs.reset_config = True
-  cs.voltage = 300
+  cs.voltage = 250
   cs.clr_armed = True
-  print("Configuring JLink")
-  jlink = pylink.JLink()
-  jlink.open()
 
 initAll()
 trycounter = 0
-CONFIG_TRY = 1000
+CONFIG_TRY = 100
 
 print("Target init")
 target.init()
@@ -69,14 +76,16 @@ def quit_all():
   input("Halting after keypress")
   sys.exit(0)
 
+print("Initializing clock manager")
+clk = support.ClockMgr(8000000)
+
 print("Go!")
 while trycounter < CONFIG_TRY:
   if cs.trigger_safe == False:
     if cs.temperature_mosfet == 65535 and cs.temperature_diode == 65535:
-      print("ChipSHOUTER Temperature reading bug, resetting...")
+      print("ChipSHOUTER temperature bug, power cycle the device. Exiting.")
       cs.armed = False
-      time.sleep(5.0)
-      cs.clr_armed = True
+      sys.exit(0)
     else:
       print("Unsafe to trigger. Waiting 5 seconds grace period")  
       cs.armed = False
@@ -93,7 +102,7 @@ while trycounter < CONFIG_TRY:
   scope.glitch.width = 4
   scope.glitch.repeat = 1
   scope.glitch.offset = random.randint(-45,45)
-  scope.glitch.ext_offset = 1230 + trycounter % 10
+  scope.glitch.ext_offset = 1280 + trycounter
   scope.arm()
   time.sleep(0.1)
   scope.io.target_pwr = True
@@ -102,7 +111,7 @@ while trycounter < CONFIG_TRY:
   jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
   r = False
   try:
-    r = jlink.connect("STM32L100RC",verbose=True)
+    r = jlink.connect("Cortex-M3",verbose=True)
   except Exception as e:
     print(e,flush=True)
     if str(e) == "Target system has no power.":

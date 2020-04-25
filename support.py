@@ -7,6 +7,26 @@ from enum import Enum
 
 Range = namedtuple("Range",["min","max","step"])
 
+# clk = ClockMgr(8000000)
+# time = clk.timeToTicks("200ns")
+
+class ClockMgr:
+  def __init__(self,freq):
+    self.secs_per_tick = (float )(1.0 / freq)
+
+  def nsToTicks(self,time_ns):
+    secs_requested = (float )((1.0 / 1000000000.0) * time_ns)
+    if secs_requested < self.secs_per_tick:
+      raise ValueError('Requested time is less than one tick')
+    else:
+      return int(secs_requested / self.secs_per_tick)
+
+  def usToTicks(self,time_us):
+    return self.nsToTicks(time_us * 1000)
+
+  def msToTicks(self,time_ms):
+    return self.nsToTicks(time_ms * 1000000)
+
 class Status(Enum):
   Expected = "green"
   Mute = "gold"

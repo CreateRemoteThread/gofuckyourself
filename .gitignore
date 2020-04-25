@@ -1,6 +1,8 @@
 cwtest/glitchsimple.hex
 cwtest/chipshouter
 
+**/log.txt
+
 pi/logs/*
 
 keepkey/*.csv
